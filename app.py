@@ -8,12 +8,13 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：深色背景 + 紅色輸入框 + 標題美化
+# CSS：深色背景 + 紅色亮眼輸入框 + 標題文字美化
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
+    /* 強化輸入框：紅色文字、粗邊框 */
     .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
         border-radius: 15px !important;
@@ -82,15 +83,16 @@ def get_data(sid):
 if st.button("🚀 執行 AI 數據分析"):
     try:
         cost = float(cost_str)
-        with st.spinner('金兔正在整理詳細實戰指南...'):
+        with st.spinner('金兔正在偵測波浪與線型...'):
             name, df, price = get_data(sid)
 
             if price and not pd.isna(price):
-                # --- 📈 1. K 線圖 ---
+                # --- 📈 1. K 線圖計算 ---
                 if not df.empty:
                     df['MA20'] = df['Close'].rolling(window=20).mean()
                     df['MA60'] = df['Close'].rolling(window=60).mean()
                     ma20, ma60 = df['MA20'].iloc[-1], df['MA60'].iloc[-1]
+                    
                     fig = go.Figure(data=[go.Candlestick(
                         x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
                         increasing_line_color='#ff4d4d', decreasing_line_color='#00b050'
@@ -106,9 +108,12 @@ if st.button("🚀 執行 AI 數據分析"):
 
                 # --- 2. 數據精算與突破判定 ---
                 p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
+                
+                # 自動偵測：多頭與神獸
                 is_bull = price > ma20 > ma60 if ma60 > 0 else False
                 is_god = cost >= (price * 1.5) 
                 
+                # AI 戰術策略
                 if price < cost:
                     strategy = f"📍 低推上收貨中。現價離法人成本還有 {round(cost-price, 2)} 元，站穩成本線即轉強。"
                     color = "#51cf66"
@@ -128,11 +133,16 @@ if st.button("🚀 執行 AI 數據分析"):
                     color = "#ff4b4b"
 
                 # --- 3. 完整 HTML 卡片 ---
+                bull_html = f'''<div style="background: linear-gradient(135deg, #fff9db, #fcc419); color: #5d4037; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #fbc02d;">🔥 偵測到「多頭線型」排列</div>''' if is_bull else ""
+                god_html = f'''<div style="background: #ff8787; color: white; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold;">⚠️ 偵測到「上古神獸」<br><span style="font-size:12px;">(建議更改為「融資成本」重新分析)</span></div>''' if is_god else ""
+
                 full_card_html = f'''
                 <div style="font-family: -apple-system, sans-serif; background: white; padding: 15px; border-radius: 25px; color: #333;">
                     <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;">
                         <span style="font-size: 24px; font-weight: bold; color: white;">{name} ({sid})</span>
                     </div>
+                    
+                    {bull_html} {god_html}
                     
                     <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border-radius: 15px;">
                         <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 38px; font-weight: bold; color: {color};">{price:.2f}</div></div>
@@ -141,7 +151,7 @@ if st.button("🚀 執行 AI 數據分析"):
                     
                     <div style="background: #fff5f5; border-left: 6px solid #ff4b4b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                         <div style="font-weight: bold; color: #ff4b4b; font-size: 17px; margin-bottom: 5px;">🐰 AI 戰術建議：</div>
-                        <div style="font-size: 15px; font-weight: bold; color: #333;">{strategy}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #333; line-height: 1.4;">{strategy}</div>
                     </div>
                     
                     <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 20px;">
@@ -181,7 +191,7 @@ if st.button("🚀 執行 AI 數據分析"):
                     </div>
                 </div>
                 '''
-                components.html(full_card_html, height=1450, scrolling=True)
+                components.html(full_card_html, height=1550, scrolling=True)
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
