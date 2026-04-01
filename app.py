@@ -8,27 +8,23 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：隱藏按鈕、強化輸入框視覺
+# CSS：優化輸入框質感
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 隱藏原生 number_input 的加減鈕 */
-    button[title="Step up"], button[title="Step down"] { display: none !important; }
-    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number] { -moz-appearance: textfield; }
-
-    .stNumberInput div[data-baseweb="input"] {
+    .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
         border-radius: 15px !important;
         border: 2px solid #555 !important;
         min-height: 70px !important;
     }
-    .stNumberInput input {
+    .stTextInput input {
         color: #ff4b4b !important; 
         font-size: 32px !important; 
         text-align: center !important;
+        line-height: 1.5 !important; 
         font-weight: bold !important;
     }
     
@@ -43,26 +39,44 @@ st.markdown("""
     </style>
     
     <script>
-    // 強制純數字大鍵盤 (tel 類型是 iOS 喚起大數字盤的唯一解)
-    var forceBigNumeric = function() {
-        var inputs = window.parent.document.querySelectorAll('input');
-        inputs.forEach(function(input) {
-            input.setAttribute('type', 'tel'); 
-            input.setAttribute('inputmode', 'decimal'); 
-            input.onfocus = function() { this.setAttribute('type', 'tel'); };
+    // 終極大數字鍵盤腳本：確保喚起九宮格
+    function applyNumericKeyboard() {
+        const inputs = window.parent.document.querySelectorAll('input');
+        inputs.forEach(input => {
+            // iOS 喚起純數字大鍵盤的黃金組合
+            input.setAttribute('type', 'tel');
+            input.setAttribute('inputmode', 'decimal');
+            input.setAttribute('pattern', '[0-9.]*');
+            
+            // 防止 iOS 在點擊時切換回文字
+            input.addEventListener('focus', function() {
+                this.setAttribute('type', 'tel');
+                this.setAttribute('inputmode', 'decimal');
+            });
         });
-    };
-    setTimeout(forceBigNumeric, 1000);
-    setInterval(forceBigNumeric, 2000);
+    }
+
+    // 使用觀察器死盯著網頁更新，防止 Streamlit 偷換屬性
+    const observer = new MutationObserver((mutations) => {
+        applyNumericKeyboard();
+    });
+
+    observer.observe(window.parent.document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // 初始執行
+    setTimeout(applyNumericKeyboard, 500);
     </script>
     """, unsafe_allow_html=True)
 
 st.title("🐰 仙兔 AI 波浪分析儀")
 
-# 2. 輸入區
+# 2. 輸入區 (回歸 text_input 以配合 JS 喚起鍵盤)
 c1, c2 = st.columns(2)
-with c1: sid_num = st.number_input("股票代號", value=4807, step=1, format="%d")
-with c2: cost = st.number_input("外資/法人成本", value=38.53, step=0.01, format="%.2f")
+with c1: sid_in = st.text_input("股票代號", value="4807")
+with c2: cost_in = st.text_input("外資/法人成本", value="38.53")
 
 @st.cache_data(ttl=300)
 def get_data(sid_str):
@@ -85,8 +99,9 @@ def get_data(sid_str):
 
 if st.button("🚀 執行 AI 數據大集合分析"):
     try:
-        sid_str = str(int(sid_num))
-        with st.spinner('金兔正在搬運大集合數據...'):
+        cost = float(cost_in)
+        sid_str = str(sid_in).strip()
+        with st.spinner('金兔正在準備最終版數據...'):
             name, df, price, change = get_data(sid_str)
 
             if price and not pd.isna(price):
@@ -99,7 +114,7 @@ if st.button("🚀 執行 AI 數據大集合分析"):
                     if price > m20 > m60:
                         t_label, t_grad, t_c = "🔥 偵測到「多頭線型」排列", "linear-gradient(135deg, #fff9db, #fcc419)", "#5d4037"
                     elif price < m20 < m60:
-                        t_label, t_grad, t_c = "❄️ 偵測到「空頭線型」注意風險", "linear-gradient(135deg, #e9ecef, #adb5bd)", "#343a40"
+                        t_label, t_grad, t_c = "❄️ 偵測到「空頭線型」排列", "linear-gradient(135deg, #e9ecef, #adb5bd)", "#343a40"
                     else:
                         t_label, t_grad, t_c = "🌀 偵測到「橫盤整盤」線型", "linear-gradient(135deg, #e3fafc, #99e9f2)", "#0b7285"
                     trend_html = f'<div style="background: {t_grad}; color: {t_c}; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid rgba(0,0,0,0.1);">{t_label}</div>'
@@ -118,10 +133,8 @@ if st.button("🚀 執行 AI 數據大集合分析"):
                 p104 = round(cost*1.04, 2)
                 t1, t2, t3 = round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
                 
-                # 現價顏色邏輯
                 p_color = "#ff4d4d" if change > 0 else ("#00b050" if change < 0 else "#333")
                 
-                # 關卡達成標籤邏輯
                 def get_row_style(val):
                     if price >= val: return 'color: #ff4d4d; font-weight: bold;', '🚩 已達成 '
                     return 'color: #333;', ''
@@ -154,16 +167,11 @@ if st.button("🚀 執行 AI 數據大集合分析"):
                         {sl_row}
                         <tr><td style="padding: 12px 5px;">{l_t1}目標關卡一 (1.2)</td><td style="text-align: right; {s_t1}">{t1:.2f}</td></tr>
                         <tr style="background: #fafafa;"><td style="padding: 12px 5px;">{l_t2}目標關卡二 (1.4)</td><td style="text-align: right; {s_t2}">{t2:.2f}</td></tr>
-                        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px 5px; font-weight: bold;">{l_t3}目標關卡三 (1.7) <span style="font-size:11px; color:#cc0000; font-weight:normal;">*高風險不建議追價</span></td><td style="text-align: right; {s_t3}">{t3:.2f}</td></tr>
+                        <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px 5px; font-weight: bold;">{l_t3}目標關卡三 (1.7) <span style="font-size:11px; color:#cc0000; font-weight:normal;">*高風險不追價</span></td><td style="text-align: right; {s_t3}">{t3:.2f}</td></tr>
                     </table>
                     
                     <div style="background: #fff9c4; padding: 20px; border-radius: 20px; border: 3px solid #fbc02d;">
                         <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 15px; font-size: 19px;">🐰 兔子理財小學堂：買股心法</div>
-                        <div style="background: #fef9e7; padding: 15px; border-radius: 12px; margin-bottom: 18px; text-align: center; border: 1px dashed #fbc02d;">
-                            <div style="color: #c92a2a; font-weight: bold; font-size: 17px;">核心：買比【法人成本】高一點點的股！</div>
-                            <div style="color: #5d4037; font-size: 14px; margin-top: 5px; font-weight: bold;">低位盤整 + 股價推升 = 主力收貨完成</div>
-                        </div>
-                        <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則</div>
                         <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
                             <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; font-size: 14px;">1. <b>強勢股</b>：站穩季線 (60MA) 之上。</div>
                             <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; font-size: 14px;">2. <b>法人加碼</b>：盤整時法人連續買超。</div>
