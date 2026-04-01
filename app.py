@@ -17,17 +17,19 @@ st.markdown("""
         font-size: 1.1em;
     }
     div[data-testid="stMetricValue"] { font-size: 2.2rem !important; }
+    input { font-size: 1.2rem !important; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🎯 仙兔關卡價查詢")
 
-# 3. 輸入區 (自動彈出數字鍵盤)
+# 3. 輸入區 (優化：支援小數點後兩位)
 col1, col2 = st.columns(2)
 with col1:
     sid = st.text_input("股票代號", value="2330")
 with col2:
-    cost = st.number_input("基準成本", value=1800.0, step=0.1, format="%.1f")
+    # 修改 step=0.01 讓鍵盤支援兩位小數，format="%.2f" 顯示兩位
+    cost = st.number_input("基準成本", value=1664.90, step=0.01, format="%.2f")
 
 # 數字鍵盤補丁
 components.html(
@@ -40,15 +42,15 @@ components.html(
     </script>""", height=0,
 )
 
-def get_analysis(sid, cost):
-    # --- A. 抓取中文名稱 (使用 twstock 官方資料庫) ---
+def get_analysis(sid):
+    # A. 抓取中文名稱
     try:
         stock_info = twstock.codes.get(sid)
         name = stock_info.name if stock_info else sid
     except:
         name = sid
 
-    # --- B. 抓取現價 (爬取 Yahoo 奇摩股市) ---
+    # B. 抓取現價 (強化版爬蟲)
     price = None
     try:
         url = f"https://tw.stock.yahoo.com/quote/{sid}"
@@ -56,8 +58,8 @@ def get_analysis(sid, cost):
         resp = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(resp.text, 'html.parser')
         
-        # 嘗試多種可能抓到價格的標籤 (Yahoo 經常更換 class)
-        price_tag = soup.select_one('span[class*="Fz(32px)"]')
+        # 嘗試抓取 Yahoo 價格標籤 (包含漲、跌、平盤三種可能的 class)
+        price_tag = soup.find('span', class_=lambda x: x and 'Fz(32px)' in x)
         if price_tag:
             price = float(price_tag.text.replace(',', ''))
     except:
@@ -66,8 +68,8 @@ def get_analysis(sid, cost):
     return name, price
 
 if st.button("🚀 開始計算報告"):
-    with st.spinner('正在同步最新數據...'):
-        stock_name, current_price = get_analysis(sid, cost)
+    with st.spinner('數據同步中...'):
+        stock_name, current_price = get_analysis(sid)
         
         if current_price:
             # 仙兔邏輯計算
@@ -80,22 +82,22 @@ if st.button("🚀 開始計算報告"):
             elif takeoff <= current_price < t1: status, color = "🚀 起飛 (過1.04)", "inverse"
             else: status, color = "🔥 強勢 (已達標)", "inverse"
 
-            # 顯示結果卡片
+            # 4. 顯示結果卡片
             st.divider()
             st.subheader(f"{stock_name} ({sid})")
             st.metric("當前現價", f"{current_price:.2f}", delta=status, delta_color=color)
             
-            # 直式表格 (保留一位小數)
+            # 5. 數據表 (統一顯示到小數點後兩位)
             st.write("### 📏 關卡價參考表")
             res_data = [
-                {"項目": "基準成本", "數值": f"{cost:.1f}"},
-                {"項目": "起飛價 (1.04)", "數值": f"{takeoff:.1f}"},
-                {"項目": "第一滿足 (1.2)", "數值": f"{t1:.1f}"},
-                {"項目": "第二滿足 (1.4)", "數值": f"{t2:.1f}"},
-                {"項目": "第三滿足 (1.7)", "數值": f"{t3:.1f}"}
+                {"項目": "基準成本", "數值": f"{cost:.2f}"},
+                {"項目": "起飛價 (1.04)", "數值": f"{takeoff:.2f}"},
+                {"項目": "第一滿足 (1.2)", "數值": f"{t1:.2f}"},
+                {"項目": "第二滿足 (1.4)", "數值": f"{t2:.2f}"},
+                {"項目": "第三滿足 (1.7)", "數值": f"{t3:.2f}"}
             ]
             st.table(res_data)
         else:
-            st.error(f"❌ 無法抓取 {sid} 的現價。請確認代號正確或稍後再試。")
+            st.error(f"❌ 無法抓取 {sid} 的現價。請檢查網路或稍後再試。")
 
 st.caption("數據來源：twstock & Yahoo | 邏輯：仙兔關卡價")
