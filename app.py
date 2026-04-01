@@ -5,20 +5,21 @@ import pandas as pd
 import streamlit.components.v1 as components
 
 # ==========================================
-# 🌟 自定義區域：金色兔子圖示設定
+# 🌟 自定義區域：金色兔子圖示設定 (版本號強制刷新)
 # ==========================================
-# 使用高品質金色財運兔圖示
-GOLD_RABBIT_ICON = "https://cdn-icons-png.flaticon.com/512/2663/2663067.png"
+# 加上 ?v=5 標記，強制讓手機瀏覽器認為這是新圖片，進而更新桌面圖示
+GOLD_RABBIT_ICON = "https://cdn-icons-png.flaticon.com/512/2663/2663067.png?v=5"
 APP_TITLE = "仙兔 AI 波浪分析儀"
 
-# 1. 網頁基礎設定 (Favicon 也會換成金兔)
+# 1. 網頁基礎設定
 st.set_page_config(page_title=APP_TITLE, page_icon=GOLD_RABBIT_ICON, layout="centered")
 
-# 2. 強制手機桌面圖示 (讓加入主畫面時顯示金兔)
+# 2. 強制手機桌面圖示與快取更新 (針對 iOS/Android)
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{GOLD_RABBIT_ICON}">
-        <link rel="icon" href="{GOLD_RABBIT_ICON}">
+        <link rel="icon" type="image/png" href="{GOLD_RABBIT_ICON}">
+        <meta property="og:image" content="{GOLD_RABBIT_ICON}">
     </head>
     """, unsafe_allow_html=True)
 
@@ -38,7 +39,7 @@ st.markdown("""
 
 st.title(f"🐰 {APP_TITLE}")
 
-# --- 以下為 v8.5 強大功能邏輯 ---
+# --- 以下為核心功能邏輯 ---
 c1, c2 = st.columns(2)
 sid = c1.text_input("股票代號", value="1815")
 cost_str = c2.text_input("外資/法人成本", value="105.6")
@@ -125,7 +126,7 @@ if st.button("🚀 執行 AI 數據分析"):
                             <tr style="background: #fafafa; border-top: 1px solid #eee;"><td style="padding: 12px 20px;">法人原始成本</td><td style="padding: 12px 20px; text-align: right; font-weight: bold;">{cost:.2f}</td></tr>
                             <tr style="background: #fff9db;"><td style="padding: 12px 20px; color: #e67e22; font-weight: bold;">突破點 (1.04)</td><td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #e67e22;">{p104:.2f}</td></tr>
                             <tr><td style="padding: 12px 20px;">關卡一 (1.2高點)</td><td style="padding: 12px 20px; text-align: right; font-weight: bold;">{t1:.2f}</td></tr>
-                            <tr style="background: #fafafa;"><td style="padding: 12px 20px;">關卡二 (1.4高點)</td><td style="padding: 12px 20px; text-align: right; font-weight: bold;">{t2:.2f}</td></tr>
+                            <tr style="background: #fafafa;"><td style="padding: 12px 20px; text-align: right; font-weight: bold;">關卡二 (1.4高點)</td><td style="padding: 12px 20px; text-align: right; font-weight: bold;">{t2:.2f}</td></tr>
                             <tr style="border-bottom: 1px solid #eee;"><td style="padding: 12px 20px;">關卡三 (1.7神獸點)<br><small style="color:#888;">建議改用融資成本</small></td><td style="padding: 12px 20px; text-align: right; font-weight: bold;">{t3:.2f}</td></tr>
                         </table>
                         <div style="background: #ebfbee; padding: 20px; margin-top: 5px; border-top: 2px dashed #b2f2bb;">
