@@ -4,7 +4,7 @@ import twstock
 import pandas as pd
 import streamlit.components.v1 as components
 
-# 1. 基礎設定 (移除所有會導致亂碼的 meta 標籤)
+# 1. 基礎設定 (確保無亂碼)
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
 # 2. 介面美化
@@ -36,7 +36,7 @@ def get_data(sid):
         if stock_info: name = stock_info.name
     except: pass
 
-    # 嘗試用 yfinance 抓取歷史數據與現價
+    # 強力抓取數據機制
     for suffix in [".TW", ".TWO"]:
         try:
             ticker = yf.Ticker(f"{sid}{suffix}")
@@ -44,11 +44,11 @@ def get_data(sid):
             if not df.empty and len(df) >= 60:
                 price = float(df['Close'].iloc[-1])
                 ma60 = float(df['Close'].rolling(window=60).mean().iloc[-1])
-                break
+                if price > 0: break
         except: continue
     
-    # 備援機制：如果現價抓不到，改用 twstock 即時報價
-    if price is None or pd.isna(price):
+    # 備援：如果現價抓不到，改用 twstock 即時報價
+    if price is None or pd.isna(price) or price == 0:
         try:
             rt = twstock.realtime.get(sid)
             if rt and rt['success']:
@@ -59,7 +59,7 @@ def get_data(sid):
 if st.button("🚀 執行 AI 數據分析"):
     try:
         cost = float(cost_str)
-        with st.spinner('正在同步大數據與金兔心法...'):
+        with st.spinner('金兔搬運數據中...'):
             name, price, ma60 = get_data(sid)
 
             if price and not pd.isna(price) and ma60:
@@ -67,18 +67,17 @@ if st.button("🚀 執行 AI 數據分析"):
                 p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
                 is_god_beast = cost >= (price * 1.7)
                 
-                # 戰術判定
+                # 顏色與建議邏輯
                 if price < cost: strategy, color = "📍 現價低於成本，法人收貨中，適合分批低接。", "#51cf66"
                 elif price < p104: strategy, color = f"📍 處於起跑區，站穩 1.04 突破點 ({p104}) 後即起飛。", "#fcc419"
                 elif price < t1: strategy, color = "📍 已突破 1.04！目標關卡一 (1.2)，注意短線盤整。", "#ff922b"
                 else: strategy, color = f"📍 強勢波段行進中，注意 {t2} 關卡壓力。", "#ff6b6b"
 
-                # 卡片 HTML
-                god_beast_html = f'''<div style="background: linear-gradient(135deg, #FFD700, #DAA520); color: #3d2b1f; padding: 15px; margin: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #B8860B;">✨ 偵測到「上古神獸」✨<br>成本過高，建議改用【融資成本】重新計算。</div>''' if is_god_beast else ""
+                god_beast_html = f'''<div style="background: #fff9db; color: #856404; padding: 15px; margin: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #ffeeba;">⚠️ 偵測到「上古神獸」<br>成本過高，建議改用【融資成本】計算。</div>''' if is_god_beast else ""
                 
                 ai_trend = "📈 趨勢偏多，股價在季線之上。" if price > ma60 else "📉 趨勢偏弱，股價在季線之下。"
                 bias = ((price - ma60) / ma60) * 100
-                ai_bias = f"<br>🚨 正乖離率過大 ({bias:.1f}%)，隨時有修正風險。" if bias > 15 else ""
+                ai_bias = f"<br>🚨 正乖離率過大 ({bias:.1f}%)，注意修正風險。" if bias > 15 else ""
 
                 full_card = f'''
                 <div style="font-family: sans-serif; background: #fffafb; padding: 5px;">
@@ -95,12 +94,12 @@ if st.button("🚀 執行 AI 數據分析"):
                             </div>
                         </div>
                         <div style="background: #fff5f5; border-left: 5px solid #ff6b6b; padding: 15px; margin: 0 20px 15px 20px; border-radius: 8px;">
-                            <div style="font-weight: bold; color: #ff6b6b; margin-bottom: 5px; font-size: 15px;">🐰 兔兔戰術建議：</div>
-                            <div style="font-size: 14px; line-height: 1.5;">{strategy}</div>
+                            <div style="font-weight: bold; color: #ff6b6b; margin-bottom: 5px;">🐰 兔兔戰術建議：</div>
+                            <div style="font-size: 14px;">{strategy}</div>
                         </div>
                         <div style="background: #f0f7ff; border-left: 5px solid #228be6; padding: 15px; margin: 0 20px 20px 20px; border-radius: 8px;">
-                            <div style="font-weight: bold; color: #228be6; margin-bottom: 5px; font-size: 15px;">🤖 AI 智慧分析：</div>
-                            <div style="font-size: 14px; line-height: 1.5;">{ai_trend}{ai_bias}</div>
+                            <div style="font-weight: bold; color: #228be6; margin-bottom: 5px;">🤖 AI 智慧分析：</div>
+                            <div style="font-size: 14px;">{ai_trend}{ai_bias}</div>
                         </div>
                         <table style="width: 100%; border-collapse: collapse; font-size: 15px; color: #555;">
                             <tr style="background: #fafafa; border-top: 1px solid #eee;"><td style="padding: 12px 20px;">法人原始成本</td><td style="padding: 12px 20px; text-align: right; font-weight: bold;">{cost:.2f}</td></tr>
@@ -112,10 +111,10 @@ if st.button("🚀 執行 AI 數據分析"):
                         <div style="background: #ebfbee; padding: 20px; border-top: 2px dashed #b2f2bb;">
                             <div style="text-align: center; color: #2b8a3e; font-weight: bold; margin-bottom: 12px;">🐰 兔子理財：選股四原則</div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                <div style="font-size: 13px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">🚀 <b>優先強勢股</b></div>
-                                <div style="font-size: 13px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">🤝 <b>法人持續加碼</b></div>
-                                <div style="font-size: 13px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">📉 <b>確認多頭線型</b></div>
-                                <div style="font-size: 13px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">🎯 <b>現價離成本近</b></div>
+                                <div style="font-size: 12px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">🚀 <b>優先強勢股</b></div>
+                                <div style="font-size: 12px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">🤝 <b>法人持續加碼</b></div>
+                                <div style="font-size: 12px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">📉 <b>確認多頭線型</b></div>
+                                <div style="font-size: 12px; color: #2b8a3e; background: white; padding: 8px; border-radius: 8px; border: 1px solid #d3f9d8;">🎯 <b>現價離成本近</b></div>
                             </div>
                         </div>
                     </div>
@@ -123,6 +122,6 @@ if st.button("🚀 執行 AI 數據分析"):
                 '''
                 components.html(full_card, height=880, scrolling=True)
             else:
-                st.error("❌ 無法抓取即時報價，請檢查代號或稍後再試。")
+                st.error("❌ 抓取不到報價。請檢查代號正確或稍後再試。")
     except Exception as e:
-        st.error(f"⚠️ 發生錯誤: {e}")
+        st.error(f"⚠️ 錯誤: {e}")
