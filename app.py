@@ -104,6 +104,7 @@ if st.button("🚀 執行波浪數據分析"):
                 t3 = round(cost * 1.7, 2)
                 is_god_beast = price >= t3
                 
+                # 判斷狀態
                 if price < cost:
                     strategy = "📍 **現價低於成本！** 法人還在盤整/收貨階段，建議耐心守候。"
                     status, color = "🟢 盤整收貨", "#51cf66"
@@ -118,7 +119,7 @@ if st.button("🚀 執行波浪數據分析"):
                     status, color = "🔥 強勢波浪", "#ff6b6b"
                 else:
                     strategy = "📍 **警戒：已達高標位階！** 建議改用【融資成本】重新計算波浪。"
-                    status, color = "⚠️ 高檔警戒", "#e63946"
+                    status, color = "#e63946", "#e63946"
 
                 god_beast_html = f"""
                 <div class="god-beast-alert">
@@ -127,6 +128,7 @@ if st.button("🚀 執行波浪數據分析"):
                 </div>
                 """ if is_god_beast else ""
 
+                # 4. 輸出精美 HTML 報告 (這部分就是你要求的顯示結構)
                 report_html = f"""
                 <div class="report-card">
                     <div class="report-header">
