@@ -8,57 +8,54 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：隱藏加減號 + 深色高對比度
+# CSS：優化深色質感，並美化輸入框
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 核心：隱藏 number_input 的加減按鈕 */
-    button.step-up, button.step-down { display: none !important; }
-    div[data-testid="stNumberInputStepUp"], div[data-testid="stNumberInputStepDown"] { display: none !important; }
-    
-    /* 讓輸入框填滿空間並美化 */
-    .stNumberInput input {
+    /* 美化輸入框：讓文字置中、綠色發光感 */
+    .stTextInput input {
         background-color: #1a1c23 !important;
         color: #00ff00 !important;
-        font-size: 24px !important;
+        font-size: 26px !important;
         border-radius: 12px !important;
-        border: 1px solid #333 !important;
+        border: 1px solid #444 !important;
         text-align: center;
+        height: 60px !important;
     }
     
     .stButton>button { 
         width: 100%; border-radius: 20px; height: 3.8em; 
         background: linear-gradient(135deg, #ff6b6b, #f06595); 
-        color: white; font-weight: bold; border: none; font-size: 18px;
+        color: white; font-weight: bold; border: none; font-size: 20px;
         box-shadow: 0 4px 15px rgba(240, 101, 149, 0.4);
-        margin-top: 10px;
+        margin-top: 15px;
     }
-    label { color: #eee !important; font-weight: bold; font-size: 16px; margin-bottom: 5px; }
+    label { color: #eee !important; font-weight: bold; font-size: 16px; margin-bottom: 8px; display: block; text-align: center; }
     </style>
     
     <script>
-    // 強制唤起手機純數字鍵盤 (針對所有輸入框)
-    var applyNumericKeyboard = function() {
+    // 終極腳本：將 text_input 偽裝成數字鍵盤觸發器
+    var forceNumeric = function() {
         var inputs = window.parent.document.querySelectorAll('input');
         inputs.forEach(function(input) {
-            input.setAttribute('inputmode', 'decimal'); // 喚起帶小數點的數字鍵盤
-            input.setAttribute('pattern', '[0-9]*');
+            // 讓手機跳出帶有小數點的數字鍵盤
+            input.setAttribute('inputmode', 'decimal');
+            input.setAttribute('type', 'text'); // 保持 text 類型以避開 Streamlit 的加減按鈕
         });
     };
-    setTimeout(applyNumericKeyboard, 1000);
-    setInterval(applyNumericKeyboard, 3000); // 持續監控
+    setTimeout(forceNumeric, 1000);
+    setInterval(forceNumeric, 2000);
     </script>
     """, unsafe_allow_html=True)
 
 st.title("🐰 仙兔 AI 波浪分析儀")
 
-# 2. 輸入區 (隱藏按鈕後的乾淨輸入)
+# 2. 輸入區 (改用 text_input 徹底避開加減按鈕)
 c1, c2 = st.columns(2)
-sid_num = c1.number_input("股票代號", value=4807, step=1)
-sid = str(sid_num)
-cost = c2.number_input("外資/法人成本", value=38.53, step=0.01, format="%.2f")
+sid = c1.text_input("股票代號", value="4807")
+cost_str = c2.text_input("外資/法人成本", value="38.53")
 
 @st.cache_data(ttl=300)
 def get_data(sid):
@@ -79,11 +76,13 @@ def get_data(sid):
 
 if st.button("🚀 執行 AI 數據分析"):
     try:
+        # 將輸入的文字轉回數字
+        cost = float(cost_str)
         with st.spinner('金兔正在校正數據與 K 線...'):
             name, df, price = get_data(sid)
 
             if price and not pd.isna(price):
-                # --- 📈 1. K 線圖 (縮放優化版) ---
+                # --- 📈 1. K 線圖 (縮放優化) ---
                 if not df.empty:
                     df['MA20'] = df['Close'].rolling(window=20).mean()
                     df['MA60'] = df['Close'].rolling(window=60).mean()
@@ -111,7 +110,7 @@ if st.button("🚀 執行 AI 數據分析"):
                                   (f"📍 起跑區 (看{p104})", "#fcc419") if price < p104 else \
                                   ("📍 強勢波段中", "#ff6b6b")
 
-                # --- 3. 完整 HTML 卡片 ---
+                # --- 3. 完整 HTML 卡片 (包含 1.7 神獸與四原則) ---
                 bull_html = f'''<div style="background: linear-gradient(135deg, #fff9db, #fcc419); color: #5d4037; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #fcc419;">🔥 偵測到「多頭線型」排列</div>''' if is_bull else ""
                 god_html = f'''<div style="background: #ff8787; color: white; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold;">⚠️ 偵測到「上古神獸」<br><span style="font-size:12px;">(建議更改為「融資成本」重新分析)</span></div>''' if is_god else ""
 
@@ -151,4 +150,4 @@ if st.button("🚀 執行 AI 數據分析"):
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
-        st.error(f"⚠️ 錯誤: {e}")
+        st.error(f"⚠️ 請輸入正確數字格式: {e}")
