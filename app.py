@@ -8,12 +8,22 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：深色背景 + 紅色亮眼輸入框 + 標題文字美化
+# CSS：深色背景 + 紅色亮眼輸入框 + 隱藏原生步進器
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
+    /* 隱藏任何可能出現的加減按鈕 (Chrome/Safari) */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
     /* 強化輸入框：紅色文字、粗邊框 */
     .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
@@ -44,15 +54,22 @@ st.markdown("""
     </style>
     
     <script>
-    var forceNumeric = function() {
+    // 三重強制數字鍵盤腳本
+    var forceNumericKeyboard = function() {
+        // 抓取所有的 input 標籤
         var inputs = window.parent.document.querySelectorAll('input');
         inputs.forEach(function(input) {
-            input.setAttribute('inputmode', 'decimal');
-            input.setAttribute('type', 'text'); 
+            // 關鍵：將 type 設為 number 並指定 inputmode
+            input.setAttribute('type', 'number'); 
+            input.setAttribute('inputmode', 'decimal'); 
+            input.setAttribute('pattern', '[0-9.]*');
+            input.setAttribute('step', 'any'); // 允許小數點
         });
     };
-    setTimeout(forceNumeric, 1000);
-    setInterval(forceNumeric, 2000);
+    
+    // 初始執行與循環監控 (防止 Streamlit 重新渲染時跑掉)
+    setTimeout(forceNumericKeyboard, 1000);
+    setInterval(forceNumericKeyboard, 2000);
     </script>
     """, unsafe_allow_html=True)
 
@@ -60,8 +77,11 @@ st.title("🐰 仙兔 AI 波浪分析儀")
 
 # 2. 輸入區
 c1, c2 = st.columns(2)
-with c1: sid = st.text_input("股票代號", value="4807")
-with c2: cost_str = st.text_input("外資/法人成本", value="38.53")
+with c1: 
+    # 使用 text_input 但透過 JS 強制轉型，這在手機上最穩
+    sid = st.text_input("股票代號", value="4807", key="sid_input")
+with c2: 
+    cost_str = st.text_input("外資/法人成本", value="38.53", key="cost_input")
 
 @st.cache_data(ttl=300)
 def get_data(sid):
@@ -108,8 +128,6 @@ if st.button("🚀 執行 AI 數據分析"):
 
                 # --- 2. 數據精算與突破判定 ---
                 p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
-                
-                # 自動偵測：多頭與神獸
                 is_bull = price > ma20 > ma60 if ma60 > 0 else False
                 is_god = cost >= (price * 1.5) 
                 
@@ -163,29 +181,27 @@ if st.button("🚀 執行 AI 數據分析"):
 
                     <div style="background: #fff9c4; padding: 20px; border-radius: 20px; border: 2px solid #fbc02d; margin-top: 10px;">
                         <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 15px; font-size: 19px;">🐰 兔子理財小學堂：買股心法</div>
-                        
                         <div style="background: #fef9e7; padding: 15px; border-radius: 12px; margin-bottom: 18px; text-align: center; border: 1px dashed #fbc02d;">
                             <div style="color: #c92a2a; font-weight: bold; font-size: 17px;">核心：買比【法人成本】高一點點的股！</div>
-                            <div style="color: #5d4037; font-size: 14px; margin-top: 5px;">低位盤整 + 股價推升 = 主力收貨完成</div>
+                            <div style="color: #5d4037; font-size: 14px; margin-top: 5px; font-weight: bold;">低位盤整 + 股價推升 = 主力收貨完成</div>
                         </div>
-
                         <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則實戰說明</div>
                         <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
                             <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
                                 <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">1. 強勢股 (趨勢領先)</div>
-                                <div style="font-size: 13px; color: #666; margin-top: 4px;">股價必須站穩在<b>季線 (60MA)</b> 之上。強勢股通常不破季線，每次回測季線都是分批佈局的機會。</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">股價必須站穩在<b>季線 (60MA)</b> 之上。強勢股通常不破季線。</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
                                 <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">2. 法人持續加碼 (籌碼靠山)</div>
-                                <div style="font-size: 13px; color: #666; margin-top: 4px;">觀察外資、投信是否在股價盤整時<b>連續買超</b>。籌碼越集中在法人手中，後續噴發的力道越穩。</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">觀察外資、投信是否在股價盤整時<b>連續買超</b>。</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
                                 <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">3. 多頭線型 (上升慣性)</div>
-                                <div style="font-size: 13px; color: #666; margin-top: 4px;">利用 AI 偵測 <b>股價 > 月線 > 季線</b>。這代表短中長期趨勢同步向上，屬於勝率最高的「黃金排列」。</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">利用 AI 偵測 <b>股價 > 月線 > 季線</b> 的黃金排列。</div>
                             </div>
                             <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
                                 <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">4. 現價離成本近 (獲利空間)</div>
-                                <div style="font-size: 13px; color: #666; margin-top: 4px;">最理想的買點是<b>靠近法人平均成本</b>。當股價剛站上 1.04 突破點，代表風險小、後續獲利空間大。</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">最理想的買點是<b>靠近法人平均成本</b>。</div>
                             </div>
                         </div>
                     </div>
