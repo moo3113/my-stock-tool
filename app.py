@@ -17,21 +17,6 @@ st.markdown("""
         color: white; font-weight: bold; font-size: 1.1em; border: none;
     }
     input { font-size: 1.2rem !important; border-radius: 10px !important; }
-    .report-card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); margin-top: 20px; border: 1px solid #ffe3e3; }
-    .report-header { background: linear-gradient(135deg, #ff8787, #ff6b6b); color: white; padding: 20px; text-align: center; }
-    .report-table { width: 100%; border-collapse: collapse; }
-    .report-table tr { border-bottom: 1px solid #fff0f0; }
-    .report-table tr:nth-child(even) { background-color: #fafafa; }
-    .report-label { padding: 12px 20px; color: #777; font-weight: 600; width: 55%; }
-    .report-value { padding: 12px 20px; text-align: right; font-weight: bold; color: #fa5252; font-size: 1.1rem; }
-    
-    .god-beast-alert {
-        background: linear-gradient(135deg, #FFD700, #FFA500);
-        color: #5d4037; padding: 15px; margin: 15px; border-radius: 15px;
-        text-align: center; font-weight: bold; font-size: 0.95rem;
-        box-shadow: 0 4px 10px rgba(255, 215, 0, 0.4); border: 1px solid #FF8C00;
-    }
-    .strategy-box { background-color: #fff5f5; border-left: 5px solid #ff6b6b; padding: 15px; margin: 15px; border-radius: 8px; font-size: 0.9rem; color: #444; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,14 +62,12 @@ if st.button("🚀 執行波浪數據分析"):
             name, price = get_google_data(sid)
             
             if price:
-                # 核心數據計算
                 p104 = round(cost * 1.04, 2)
                 t1, t2, t3 = round(cost * 1.2, 2), round(cost * 1.4, 2), round(cost * 1.7, 2)
                 
-                # 🎯 神獸邏輯：成本數字 大於 現價的 1.7 倍
+                # 神獸邏輯：成本數字 大於 現價的 1.7 倍
                 is_god_beast = cost >= (price * 1.7)
                 
-                # 戰術建議與顏色
                 if is_god_beast:
                     strategy = "📍 **上古神獸警報！** 成本與現價落差過大，建議改用【融資成本】計算。"
                     status, color = "✨ 神獸位階", "#d4a017"
@@ -98,40 +81,54 @@ if st.button("🚀 執行波浪數據分析"):
                     strategy = "📍 **波浪行進中。** 請依關卡價觀察支撐與壓力。"
                     status, color = "#ff6b6b", "#ff6b6b"
 
-                # 準備神獸勳章 HTML
-                god_beast_html = f"""<div class="god-beast-alert">✨ 偵測到「上古神獸」✨<br>輸入成本已超過現價 1.7 倍！建議改用【融資成本】。</div>""" if is_god_beast else ""
+                # 準備神獸勳章
+                god_beast_html = f'<div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #5d4037; padding: 15px; margin: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 1px solid #FF8C00;">✨ 偵測到「上古神獸」✨<br>輸入成本已超過現價 1.7 倍！建議改用【融資成本】。</div>' if is_god_beast else ""
 
-                # 💡 確保這段 HTML 語法 100% 正確
-                report_html = f'''
-                <div class="report-card">
-                    <div class="report-header">
-                        <div style="font-size: 1.8rem; font-weight: bold;">{name} ({sid})</div>
-                    </div>
-                    {god_beast_html}
-                    <div style="padding: 25px; text-align: center;">
-                        <div style="font-size: 0.8rem; color: #888; letter-spacing: 2px;">當前市場現價</div>
-                        <div style="font-size: 3.5rem; font-weight: bold; color: {color}; line-height: 1.2;">{price:.2f}</div>
-                        <div style="margin-top: 10px;">
-                            <span style="padding: 6px 18px; border-radius: 20px; background: {color}; color: white; font-weight: bold;">{status}</span>
+                # 🚀 使用組件式 HTML 渲染，避開 Markdown 解析錯誤
+                full_html = f'''
+                <div style="font-family: sans-serif; background: #fffafb; padding: 10px;">
+                    <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #ffe3e3;">
+                        <div style="background: linear-gradient(135deg, #ff8787, #ff6b6b); color: white; padding: 20px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: bold;">{name} ({sid})</div>
                         </div>
+                        {god_beast_html}
+                        <div style="padding: 25px; text-align: center;">
+                            <div style="font-size: 0.8rem; color: #888; letter-spacing: 2px;">當前市場現價</div>
+                            <div style="font-size: 3.5rem; font-weight: bold; color: {color}; line-height: 1.2;">{price:.2f}</div>
+                            <div style="margin-top: 10px;">
+                                <span style="padding: 6px 18px; border-radius: 20px; background: {color}; color: white; font-weight: bold;">{status}</span>
+                            </div>
+                        </div>
+                        <div style="background-color: #fff5f5; border-left: 5px solid #ff6b6b; padding: 15px; margin: 15px; border-radius: 8px; font-size: 0.9rem; color: #444;">{strategy}</div>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr {"style='background-color:#fff9c4;'" if is_god_beast else ""}>
+                                <td style="padding: 12px 20px; color: #777; font-weight: 600;">法人原始成本</td>
+                                <td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #fa5252;">{cost:.2f}</td>
+                            </tr>
+                            <tr style="background-color: #fff9db;">
+                                <td style="padding: 12px 20px; color: #e67e22; font-weight: 600;">突破點 (1.04)</td>
+                                <td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #e67e22;">{p104:.2f}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: #777; font-weight: 600;">關卡一 (1.2高點)</td>
+                                <td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #fa5252;">{t1:.2f}</td>
+                            </tr>
+                            <tr style="background-color: #fafafa;">
+                                <td style="padding: 12px 20px; color: #777; font-weight: 600;">關卡二 (1.4高點)</td>
+                                <td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #fa5252;">{t2:.2f}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 20px; color: #777; font-weight: 600;">關卡三 (1.7神獸點)<br><small style="color:#888; font-weight:normal;">建議改用融資成本</small></td>
+                                <td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #fa5252;">{t3:.2f}</td>
+                            </tr>
+                        </table>
                     </div>
-                    <div class="strategy-box">{strategy}</div>
-                    <table class="report-table">
-                        <tr {"style='background-color:#fff9c4;'" if is_god_beast else ""}>
-                            <td class="report-label">法人原始成本</td>
-                            <td class="report-value">{cost:.2f}</td>
-                        </tr>
-                        <tr style="background-color: #fff9db;"><td class="report-label" style="color: #e67e22;">突破點 (1.04)</td><td class="report-value" style="color: #e67e22;">{p104:.2f}</td></tr>
-                        <tr><td class="report-label">關卡一 (1.2高點)</td><td class="report-value">{t1:.2f}</td></tr>
-                        <tr><td class="report-label">關卡二 (1.4高點)</td><td class="report-value">{t2:.2f}</td></tr>
-                        <tr><td class="report-label">關卡三 (1.7高點)</td><td class="report-value">{t3:.2f}</td></tr>
-                    </table>
                 </div>
                 '''
-                st.markdown(report_html, unsafe_allow_html=True)
+                components.html(full_html, height=650, scrolling=False)
             else:
                 st.error("❌ 無法獲取數據，請確認代號正確。")
     except Exception as e:
         st.error(f"⚠️ 執行錯誤: {e}")
 
-st.caption("實戰版 v4.2 | 成本神獸邏輯強化")
+st.caption("實戰版 v4.3 | UI 渲染穩定強化")
