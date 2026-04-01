@@ -8,13 +8,13 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：深色質感背景 + 紅色亮眼輸入框 + 完整外框
+# CSS：深色背景 + 紅色亮眼輸入框 + 標題文字美化
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 強化輸入框：確保文字與邊框完整 */
+    /* 強化輸入框：紅色文字、邊框完整 */
     .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
         border-radius: 15px !important;
@@ -83,7 +83,7 @@ def get_data(sid):
 if st.button("🚀 執行 AI 數據分析"):
     try:
         cost = float(cost_str)
-        with st.spinner('金兔正在整理戰術建議...'):
+        with st.spinner('金兔正在偵測關卡突破...'):
             name, df, price = get_data(sid)
 
             if price and not pd.isna(price):
@@ -105,20 +105,29 @@ if st.button("🚀 執行 AI 數據分析"):
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 else: ma20, ma60 = 0, 0
 
-                # --- 2. 數據計算與精簡建議 ---
+                # --- 2. 數據精算與突破判定 ---
                 p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
                 is_bull = price > ma20 > ma60 if ma60 > 0 else False
                 is_god = cost >= (price * 1.5) 
                 
-                # 回歸簡約建議
+                # --- AI 戰術建議核心邏輯 ---
                 if price < cost:
-                    strategy, color = "📍 現價低於成本，法人收貨中，適合分批低接。", "#51cf66"
+                    strategy = f"📍 低推上收貨中。現價離法人成本還有 {round(cost-price, 2)} 元，站穩成本線即轉強。"
+                    color = "#51cf66"
                 elif price < p104:
-                    strategy, color = f"📍 處於起跑區，站穩 1.04 突破點 ({p104}) 後即起飛。", "#fcc419"
+                    strategy = f"📍 蓄勢待發！離 1.04 起飛點 ({p104}) 僅差 {round(p104-price, 2)} 元，站穩即正式起飛。"
+                    color = "#fcc419"
                 elif price < t1:
-                    strategy, color = "📍 已突破 1.04！目標關卡一 (1.2)，注意短線盤整。", "#ff922b"
+                    over_104_pct = round(((price / p104) - 1) * 100, 1)
+                    strategy = f"✅ 已成功突破 1.04 位階 (超越 {over_104_pct}%)！目標直指 1.2 關卡 ({t1})。"
+                    color = "#ff922b"
+                elif price < t2:
+                    over_t1_pct = round(((price / t1) - 1) * 100, 1)
+                    strategy = f"🔥 正式站上 1.2 關卡 (超越 {over_t1_pct}%)！波段強勢衝刺，觀察 1.4 壓力點 ({t2})。"
+                    color = "#ff4b4b"
                 else:
-                    strategy, color = f"📍 強勢波段行進中，注意 {t2} 關卡壓力。", "#ff4b4b"
+                    strategy = f"🚨 極度高檔警戒！股價已站上 1.4 關卡 ({t2})，潛在 1.7 神獸點為 {t3}，請嚴格止盈。"
+                    color = "#ff4b4b"
 
                 # --- 3. 完整 HTML 卡片 ---
                 bull_html = f'''<div style="background: linear-gradient(135deg, #fff9db, #fcc419); color: #5d4037; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #fcc419;">🔥 偵測到「多頭線型」排列</div>''' if is_bull else ""
@@ -136,8 +145,8 @@ if st.button("🚀 執行 AI 數據分析"):
                     </div>
                     
                     <div style="background: #fff5f5; border-left: 6px solid #ff4b4b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
-                        <div style="font-weight: bold; color: #ff4b4b; font-size: 17px; margin-bottom: 5px;">🐰 兔兔建議：</div>
-                        <div style="font-size: 15px;">{strategy}</div>
+                        <div style="font-weight: bold; color: #ff4b4b; font-size: 17px; margin-bottom: 5px;">🐰 AI 戰術建議：</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #333;">{strategy}</div>
                     </div>
                     
                     <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 20px;">
@@ -150,12 +159,10 @@ if st.button("🚀 執行 AI 數據分析"):
 
                     <div style="background: #fff5f7; padding: 20px; border-radius: 20px; border: 2px solid #ffc9c9;">
                         <div style="text-align: center; color: #c92a2a; font-weight: bold; margin-bottom: 15px; font-size: 19px;">🐰 兔子理財小學堂：買股心法</div>
-                        
-                        <div style="background: #ffe3e3; padding: 12px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
-                            <div style="color: #c92a2a; font-weight: bold; font-size: 16px;">買股心法：買比外資成本高的股！</div>
-                            <div style="color: #444; font-size: 14px; margin-top: 5px;">低推上 = 盤整 / 收貨</div>
+                        <div style="background: #fff9c4; padding: 15px; border-radius: 12px; margin-bottom: 18px; text-align: center; border: 1px solid #fbc02d;">
+                            <div style="color: #8d6e63; font-weight: bold; font-size: 17px;">買股心法：買比外資成本高的股！</div>
+                            <div style="color: #5d4037; font-size: 15px; margin-top: 5px; font-weight: bold;">低推上 = 盤整 / 收貨</div>
                         </div>
-
                         <div style="text-align: center; color: #c92a2a; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則</div>
                         <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
                             <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
@@ -178,7 +185,7 @@ if st.button("🚀 執行 AI 數據分析"):
                     </div>
                 </div>
                 '''
-                components.html(full_card_html, height=1300, scrolling=True)
+                components.html(full_card_html, height=1350, scrolling=True)
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
