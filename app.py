@@ -8,13 +8,29 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：深色背景 + 紅色亮眼輸入框 + 標題文字美化
+# CSS：徹底消除加減鈕，強化紅色輸入質感
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 強化輸入框：紅色文字、加大字體、隱藏加減鈕 */
+    /* 1. 徹底隱藏 Chrome/Safari 的加減按鈕 */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none !important;
+        margin: 0 !important;
+    }
+    /* 2. 隱藏 Firefox 的加減按鈕 */
+    input[type=number] {
+        -moz-appearance: textfield !important;
+    }
+    /* 3. 隱藏 Streamlit 額外渲染的加減按鈕組件 */
+    div[data-testid="stNumberInputStepUp"], 
+    div[data-testid="stNumberInputStepDown"] {
+        display: none !important;
+    }
+
+    /* 強化輸入框視覺 */
     .stNumberInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
         border-radius: 15px !important;
@@ -27,8 +43,7 @@ st.markdown("""
         text-align: center !important;
         font-weight: bold !important;
     }
-    button[title="Step up"], button[title="Step down"] { display: none !important; }
-
+    
     .stButton>button { 
         width: 100%; border-radius: 20px; height: 3.8em; 
         background: linear-gradient(135deg, #c92a2a, #ff4b4b); 
@@ -40,17 +55,25 @@ st.markdown("""
     </style>
     
     <script>
-    // 終極強制數字鍵盤腳本 (iOS/Android 通用)
-    var forceNumeric = function() {
-        var inputs = window.parent.document.querySelectorAll('input[type="number"]');
+    // 強制喚起 iOS 數字鍵盤的「終極腳本」
+    var applyForce = function() {
+        var inputs = window.parent.document.querySelectorAll('input');
         inputs.forEach(function(input) {
+            // 每次重新掃描時強制設定屬性
+            input.setAttribute('type', 'number'); 
             input.setAttribute('inputmode', 'decimal'); 
             input.setAttribute('pattern', '[0-9.]*');
             input.setAttribute('step', 'any');
+            
+            // 當用戶點擊(focus)時，再次強化確保屬性不跑掉
+            input.onfocus = function() {
+                this.setAttribute('type', 'number');
+                this.setAttribute('inputmode', 'decimal');
+            };
         });
     };
-    setTimeout(forceNumeric, 1000);
-    setInterval(forceNumeric, 2000);
+    setTimeout(applyForce, 1000);
+    setInterval(applyForce, 2000);
     </script>
     """, unsafe_allow_html=True)
 
@@ -58,8 +81,10 @@ st.title("🐰 仙兔 AI 波浪分析儀")
 
 # 2. 輸入區
 c1, c2 = st.columns(2)
-with c1: sid_num = st.number_input("股票代號", value=4807, step=1, format="%d")
-with c2: cost = st.number_input("外資/法人成本", value=38.53, step=0.01, format="%.2f")
+with c1: 
+    sid_num = st.number_input("股票代號", value=4807, step=1, format="%d")
+with c2: 
+    cost = st.number_input("外資/法人成本", value=38.53, step=0.01, format="%.2f")
 
 @st.cache_data(ttl=300)
 def get_data(sid_str):
@@ -81,11 +106,11 @@ def get_data(sid_str):
 if st.button("🚀 執行 AI 數據大集合分析"):
     try:
         sid_str = str(int(sid_num))
-        with st.spinner('金兔正在搬運大集合數據...'):
+        with st.spinner('金兔正在準備大集合數據...'):
             name, df, price = get_data(sid_str)
 
             if price and not pd.isna(price):
-                # --- 📈 1. K 線圖與線型判定 ---
+                # --- 1. 線型判定與 K 線 ---
                 trend_html = ""
                 if not df.empty:
                     df['MA20'] = df['Close'].rolling(window=20).mean()
@@ -116,13 +141,16 @@ if st.button("🚀 執行 AI 數據大集合分析"):
                 t1, t2, t3 = round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
                 stop_loss = round(p104 * 0.94, 2) 
                 
-                # AI 戰術建議 (黑色 15px)
-                if price < cost: strategy = f"📍 低推上收貨中。現價離法人成本還有 {round(cost-price, 2)} 元，站穩成本線即轉強。"
-                elif price < p104: strategy = f"📍 蓄勢待發！離 1.04 起飛點 ({p104}) 僅差 {round(p104-price, 2)} 元，站穩即正式起飛。"
+                # 上古神獸判定
+                is_god = cost >= (price * 1.5) 
+                god_html = f'''<div style="background: #ff8787; color: white; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold;">⚠️ 偵測到「上古神獸」<br><span style="font-size:12px;">(建議更改為「融資成本」重新分析)</span></div>''' if is_god else ""
+
+                if price < cost: strategy = f"📍 低推上收貨中。現價離法人成本還差 {round(cost-price, 2)} 元。"
+                elif price < p104: strategy = f"📍 蓄勢待發！離 1.04 起飛點 ({p104}) 僅差 {round(p104-price, 2)} 元。"
                 elif price < t1: 
                     over_pct = round(((price / p104) - 1) * 100, 1)
-                    strategy = f"✅ 已成功突破 1.04 位階 (超越 {over_pct}%)！目標直指 1.2 關卡 ({t1})，留意風控位 {stop_loss}。"
-                else: strategy = f"🔥 強勢波段衝刺中！已站上 1.2 目標。接近 1.4 ({t2}) 或 1.7 ({t3}) 請務必嚴格止盈。"
+                    strategy = f"✅ 已成功突破 1.04 位階 (超越 {over_pct}%)！目標直指 1.2 ({t1})，留意風控位 {stop_loss}。"
+                else: strategy = f"🔥 強勢波段衝刺中！已站上 1.2。接近 1.4 ({t2}) 或 1.7 ({t3}) 請務必嚴格止盈。"
 
                 # --- 3. 完整 HTML 卡片 ---
                 full_card_html = f'''
@@ -130,7 +158,8 @@ if st.button("🚀 執行 AI 數據大集合分析"):
                     <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;">
                         <span style="font-size: 24px; font-weight: bold; color: white;">{name} ({sid_str})</span>
                     </div>
-                    {trend_html}
+                    {trend_html} {god_html}
+                    
                     <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border-radius: 15px;">
                         <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 38px; font-weight: bold;">{price:.2f}</div></div>
                         <div><div style="font-size: 13px; color: #999;">季線 (60MA)</div><div style="font-size: 32px; font-weight: bold; color: #444;">{m60:.2f}</div></div>
@@ -156,14 +185,14 @@ if st.button("🚀 執行 AI 數據大集合分析"):
                         <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則實戰說明</div>
                         <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
                             <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">1. 強勢股</div><div style="font-size: 13px; color: #666;">站穩季線 (60MA) 之上。</div></div>
-                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">2. 法人加碼</div><div style="font-size: 13px; color: #666;">觀察法人於盤整時是否連續買超。</div></div>
-                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">3. 多頭線型</div><div style="font-size: 13px; color: #666;">股價 > 月線 > 季線的黃金排列。</div></div>
-                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">4. 成本空間</div><div style="font-size: 13px; color: #666;">理想買點應靠近法人平均成本。</div></div>
+                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">2. 法人加碼</div><div style="font-size: 13px; color: #666;">盤整時法人是否連續買超。</div></div>
+                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">3. 多頭線型</div><div style="font-size: 13px; color: #666;">股價 > 月線 > 季線的排列。</div></div>
+                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid #fbc02d; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><div style="font-size: 15px; font-weight: bold; color: #c92a2a;">4. 成本空間</div><div style="font-size: 13px; color: #666;">買點應靠近法人平均成本。</div></div>
                         </div>
                     </div>
                 </div>
                 '''
-                components.html(full_card_html, height=2000, scrolling=True)
+                components.html(full_card_html, height=2100, scrolling=True)
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
