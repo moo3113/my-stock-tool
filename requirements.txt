@@ -1,5 +1,5 @@
-requests
-beautifulsoup4
-twstock
+streamlit
 yfinance
+twstock
 pandas
+plotly
