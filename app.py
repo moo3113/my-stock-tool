@@ -8,13 +8,12 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：深色背景 + 紅色亮眼輸入框 + 標題文字美化
+# CSS：深色背景 + 紅色輸入框 + 標題美化
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 強化輸入框：紅色文字、邊框完整 */
     .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
         border-radius: 15px !important;
@@ -83,7 +82,7 @@ def get_data(sid):
 if st.button("🚀 執行 AI 數據分析"):
     try:
         cost = float(cost_str)
-        with st.spinner('金兔正在優化視覺細節...'):
+        with st.spinner('金兔正在整理詳細實戰指南...'):
             name, df, price = get_data(sid)
 
             if price and not pd.isna(price):
@@ -110,7 +109,6 @@ if st.button("🚀 執行 AI 數據分析"):
                 is_bull = price > ma20 > ma60 if ma60 > 0 else False
                 is_god = cost >= (price * 1.5) 
                 
-                # AI 戰術建議核心邏輯
                 if price < cost:
                     strategy = f"📍 低推上收貨中。現價離法人成本還有 {round(cost-price, 2)} 元，站穩成本線即轉強。"
                     color = "#51cf66"
@@ -130,15 +128,12 @@ if st.button("🚀 執行 AI 數據分析"):
                     color = "#ff4b4b"
 
                 # --- 3. 完整 HTML 卡片 ---
-                bull_html = f'''<div style="background: linear-gradient(135deg, #fff9db, #fcc419); color: #5d4037; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #fcc419;">🔥 偵測到「多頭線型」排列</div>''' if is_bull else ""
-                god_html = f'''<div style="background: #ff8787; color: white; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold;">⚠️ 偵測到「上古神獸」<br><span style="font-size:12px;">(建議更改為「融資成本」重新分析)</span></div>''' if is_god else ""
-
                 full_card_html = f'''
                 <div style="font-family: -apple-system, sans-serif; background: white; padding: 15px; border-radius: 25px; color: #333;">
                     <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;">
                         <span style="font-size: 24px; font-weight: bold; color: white;">{name} ({sid})</span>
                     </div>
-                    {bull_html} {god_html}
+                    
                     <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border-radius: 15px;">
                         <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 38px; font-weight: bold; color: {color};">{price:.2f}</div></div>
                         <div><div style="font-size: 13px; color: #999;">季線 (60MA)</div><div style="font-size: 32px; font-weight: bold; color: #444;">{ma60:.2f}</div></div>
@@ -146,7 +141,7 @@ if st.button("🚀 執行 AI 數據分析"):
                     
                     <div style="background: #fff5f5; border-left: 6px solid #ff4b4b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                         <div style="font-weight: bold; color: #ff4b4b; font-size: 17px; margin-bottom: 5px;">🐰 AI 戰術建議：</div>
-                        <div style="font-size: 15px; font-weight: bold; color: #333; line-height: 1.4;">{strategy}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #333;">{strategy}</div>
                     </div>
                     
                     <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 20px;">
@@ -154,40 +149,39 @@ if st.button("🚀 執行 AI 數據分析"):
                         <tr style="background: #fff9db;"><td style="padding: 12px 5px; color: #e67e22; font-weight: bold;">突破點 (1.04)</td><td style="text-align: right; font-weight: bold; color: #e67e22;">{p104:.2f}</td></tr>
                         <tr><td style="padding: 12px 5px;">關卡一 (1.2)</td><td style="text-align: right; font-weight: bold;">{t1:.2f}</td></tr>
                         <tr style="background: #fafafa;"><td style="padding: 12px 5px;">關卡二 (1.4)</td><td style="text-align: right; font-weight: bold;">{t2:.2f}</td></tr>
-                        <tr style="border-bottom: 1px solid #eee; color: #cc0000;"><td style="padding: 12px 5px;">關卡三 (1.7神獸)</td><td style="text-align: right; font-weight: bold; color: #cc0000;">{t3:.2f}</td></tr>
                     </table>
 
                     <div style="background: #fff9c4; padding: 20px; border-radius: 20px; border: 2px solid #fbc02d; margin-top: 10px;">
                         <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 15px; font-size: 19px;">🐰 兔子理財小學堂：買股心法</div>
                         
                         <div style="background: #fef9e7; padding: 15px; border-radius: 12px; margin-bottom: 18px; text-align: center; border: 1px dashed #fbc02d;">
-                            <div style="color: #c92a2a; font-weight: bold; font-size: 17px;">買股心法：買比外資成本高的股！</div>
-                            <div style="color: #5d4037; font-size: 15px; margin-top: 5px; font-weight: bold;">低推上 = 盤整 / 收貨</div>
+                            <div style="color: #c92a2a; font-weight: bold; font-size: 17px;">核心：買比【法人成本】高一點點的股！</div>
+                            <div style="color: #5d4037; font-size: 14px; margin-top: 5px;">低位盤整 + 股價推升 = 主力收貨完成</div>
                         </div>
 
-                        <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則</div>
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
-                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">1</div>
-                                <div style="font-size: 15px; font-weight: bold; color: #444;">強勢股</div>
+                        <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則實戰說明</div>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                            <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
+                                <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">1. 強勢股 (趨勢領先)</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">股價必須站穩在<b>季線 (60MA)</b> 之上。強勢股通常不破季線，每次回測季線都是分批佈局的機會。</div>
                             </div>
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
-                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">2</div>
-                                <div style="font-size: 15px; font-weight: bold; color: #444;">法人持續加碼</div>
+                            <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
+                                <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">2. 法人持續加碼 (籌碼靠山)</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">觀察外資、投信是否在股價盤整時<b>連續買超</b>。籌碼越集中在法人手中，後續噴發的力道越穩。</div>
                             </div>
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
-                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">3</div>
-                                <div style="font-size: 15px; font-weight: bold; color: #444;">多頭線型</div>
+                            <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
+                                <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">3. 多頭線型 (上升慣性)</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">利用 AI 偵測 <b>股價 > 月線 > 季線</b>。這代表短中長期趨勢同步向上，屬於勝率最高的「黃金排列」。</div>
                             </div>
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
-                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">4</div>
-                                <div style="font-size: 15px; font-weight: bold; color: #444;">現價比成本高或差不多</div>
+                            <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #fbc02d;">
+                                <div style="font-size: 15px; font-weight: bold; color: #c92a2a;">4. 現價離成本近 (獲利空間)</div>
+                                <div style="font-size: 13px; color: #666; margin-top: 4px;">最理想的買點是<b>靠近法人平均成本</b>。當股價剛站上 1.04 突破點，代表風險小、後續獲利空間大。</div>
                             </div>
                         </div>
                     </div>
                 </div>
                 '''
-                components.html(full_card_html, height=1350, scrolling=True)
+                components.html(full_card_html, height=1450, scrolling=True)
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
