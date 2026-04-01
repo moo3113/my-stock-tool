@@ -8,41 +8,61 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：優化深色質感，並美化輸入框
+# CSS：將輸入框文字改為紅色，並優化邊框完整度
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 美化輸入框：讓文字置中、綠色發光感 */
-    .stTextInput input {
+    /* 確保輸入框容器有足夠空間，防止邊框被切掉 */
+    .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
-        color: #00ff00 !important;
-        font-size: 26px !important;
-        border-radius: 12px !important;
-        border: 1px solid #444 !important;
-        text-align: center;
-        height: 60px !important;
+        border-radius: 15px !important;
+        border: 2px solid #555 !important;
+        padding: 10px !important; /* 增加內距，確保外框完整 */
     }
     
+    /* 輸入文字改為紅色 */
+    .stTextInput input {
+        background-color: transparent !important;
+        color: #ff4b4b !important; /* 修改為紅色 */
+        font-size: 26px !important;
+        text-align: center !important;
+        height: 50px !important;
+        border: none !important;
+        font-weight: bold !important;
+    }
+    
+    /* 點擊時的發光效果 */
+    .stTextInput div[data-baseweb="input"]:focus-within {
+        border-color: #ff4b4b !important;
+        box-shadow: 0 0 12px rgba(255, 75, 75, 0.5) !important;
+    }
+
     .stButton>button { 
         width: 100%; border-radius: 20px; height: 3.8em; 
-        background: linear-gradient(135deg, #ff6b6b, #f06595); 
+        background: linear-gradient(135deg, #c92a2a, #ff4b4b); 
         color: white; font-weight: bold; border: none; font-size: 20px;
-        box-shadow: 0 4px 15px rgba(240, 101, 149, 0.4);
+        box-shadow: 0 4px 15px rgba(255, 75, 75, 0.4);
         margin-top: 15px;
     }
-    label { color: #eee !important; font-weight: bold; font-size: 16px; margin-bottom: 8px; display: block; text-align: center; }
+    
+    label { 
+        color: #eee !important; 
+        font-weight: bold !important; 
+        font-size: 16px !important; 
+        margin-bottom: 12px !important; 
+        display: block; 
+        text-align: center; 
+    }
     </style>
     
     <script>
-    // 終極腳本：將 text_input 偽裝成數字鍵盤觸發器
     var forceNumeric = function() {
         var inputs = window.parent.document.querySelectorAll('input');
         inputs.forEach(function(input) {
-            // 讓手機跳出帶有小數點的數字鍵盤
             input.setAttribute('inputmode', 'decimal');
-            input.setAttribute('type', 'text'); // 保持 text 類型以避開 Streamlit 的加減按鈕
+            input.setAttribute('type', 'text'); 
         });
     };
     setTimeout(forceNumeric, 1000);
@@ -52,10 +72,12 @@ st.markdown("""
 
 st.title("🐰 仙兔 AI 波浪分析儀")
 
-# 2. 輸入區 (改用 text_input 徹底避開加減按鈕)
+# 2. 輸入區
 c1, c2 = st.columns(2)
-sid = c1.text_input("股票代號", value="4807")
-cost_str = c2.text_input("外資/法人成本", value="38.53")
+with c1:
+    sid = st.text_input("股票代號", value="4807")
+with c2:
+    cost_str = st.text_input("外資/法人成本", value="38.53")
 
 @st.cache_data(ttl=300)
 def get_data(sid):
@@ -76,13 +98,12 @@ def get_data(sid):
 
 if st.button("🚀 執行 AI 數據分析"):
     try:
-        # 將輸入的文字轉回數字
         cost = float(cost_str)
-        with st.spinner('金兔正在校正數據與 K 線...'):
+        with st.spinner('金兔正在搬運紅色戰鬥數據...'):
             name, df, price = get_data(sid)
 
             if price and not pd.isna(price):
-                # --- 📈 1. K 線圖 (縮放優化) ---
+                # --- 📈 1. K 線圖 ---
                 if not df.empty:
                     df['MA20'] = df['Close'].rolling(window=20).mean()
                     df['MA60'] = df['Close'].rolling(window=60).mean()
@@ -110,13 +131,13 @@ if st.button("🚀 執行 AI 數據分析"):
                                   (f"📍 起跑區 (看{p104})", "#fcc419") if price < p104 else \
                                   ("📍 強勢波段中", "#ff6b6b")
 
-                # --- 3. 完整 HTML 卡片 (包含 1.7 神獸與四原則) ---
+                # --- 3. HTML 卡片 ---
                 bull_html = f'''<div style="background: linear-gradient(135deg, #fff9db, #fcc419); color: #5d4037; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #fcc419;">🔥 偵測到「多頭線型」排列</div>''' if is_bull else ""
                 god_html = f'''<div style="background: #ff8787; color: white; padding: 12px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold;">⚠️ 偵測到「上古神獸」<br><span style="font-size:12px;">(建議更改為「融資成本」重新分析)</span></div>''' if is_god else ""
 
                 full_card_html = f'''
                 <div style="font-family: -apple-system, sans-serif; background: white; padding: 15px; border-radius: 25px; color: #333;">
-                    <div style="background: linear-gradient(135deg, #ff8787, #ff6b6b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;">
+                    <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;">
                         <span style="font-size: 24px; font-weight: bold;">{name} ({sid})</span>
                     </div>
                     {bull_html} {god_html}
@@ -124,8 +145,8 @@ if st.button("🚀 執行 AI 數據分析"):
                         <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 38px; font-weight: bold; color: {color};">{price:.2f}</div></div>
                         <div><div style="font-size: 13px; color: #999;">季線 (60MA)</div><div style="font-size: 32px; font-weight: bold; color: #444;">{ma60:.2f}</div></div>
                     </div>
-                    <div style="background: #fff5f5; border-left: 6px solid #ff6b6b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
-                        <div style="font-weight: bold; color: #ff6b6b; font-size: 16px; margin-bottom: 5px;">🐰 兔兔建議：</div>
+                    <div style="background: #fff5f5; border-left: 6px solid #ff4b4b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                        <div style="font-weight: bold; color: #ff4b4b; font-size: 16px; margin-bottom: 5px;">🐰 兔兔建議：</div>
                         <div style="font-size: 15px;">{strategy}</div>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 20px;">
@@ -146,8 +167,8 @@ if st.button("🚀 執行 AI 數據分析"):
                     </div>
                 </div>
                 '''
-                components.html(full_card_html, height=1000, scrolling=True)
+                components.html(full_card_html, height=1050, scrolling=True)
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
-        st.error(f"⚠️ 請輸入正確數字格式: {e}")
+        st.error(f"⚠️ 請輸入正確數據。")
