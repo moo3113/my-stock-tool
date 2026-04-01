@@ -10,7 +10,7 @@ st.set_page_config(page_title="仙兔波浪分析儀", page_icon="🐰", layout=
 # 2. 針對手機優化 CSS
 st.markdown("""
     <style>
-    .main { background-color: #fff9f9; } /* 淡淡的兔子粉背景 */
+    .main { background-color: #fffafb; }
     .stButton>button { 
         width: 100%; border-radius: 15px; height: 3.8em; 
         background: linear-gradient(135deg, #ff6b6b, #f06595); 
@@ -19,7 +19,6 @@ st.markdown("""
     }
     input { font-size: 1.2rem !important; border-radius: 10px !important; }
     
-    /* 專業報告卡片 */
     .report-card {
         background: white; border-radius: 20px; overflow: hidden;
         box-shadow: 0 10px 25px rgba(0,0,0,0.08); margin-top: 20px;
@@ -31,11 +30,18 @@ st.markdown("""
     }
     .report-table { width: 100%; border-collapse: collapse; }
     .report-table tr { border-bottom: 1px solid #fff0f0; }
-    .report-table tr:nth-child(even) { background-color: #fffafb; }
+    .report-table tr:nth-child(even) { background-color: #fafafa; }
     .report-label { padding: 12px 20px; color: #777; font-weight: 600; width: 55%; }
     .report-value { padding: 12px 20px; text-align: right; font-weight: bold; color: #fa5252; font-size: 1.1rem; }
     
-    /* 波浪邏輯提示框 */
+    .god-beast-alert {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #5d4037; padding: 15px; margin: 15px; border-radius: 15px;
+        text-align: center; font-weight: bold; font-size: 0.95rem;
+        box-shadow: 0 4px 10px rgba(255, 215, 0, 0.4);
+        border: 1px solid #FF8C00;
+    }
+    
     .strategy-box {
         background-color: #fff5f5; border-left: 5px solid #ff6b6b;
         padding: 15px; margin: 15px; border-radius: 8px; font-size: 0.9rem; color: #444;
@@ -44,7 +50,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.title("🐰 仙兔波浪分析系統")
-st.caption("融入：法人成本波浪理論 v3.0")
+st.caption("融入：法人成本波浪理論 & 神獸偵測 v3.6")
 
 # 3. 輸入區
 col1, col2 = st.columns(2)
@@ -54,7 +60,7 @@ with col2:
     cost_str = st.text_input(
         "外資/法人成本", 
         value="105.6", 
-        help="備註：如果算起來超過 1.7 倍，就是上古神獸，請改用融資成本計算。"
+        help="注意：若股價超過 1.7 倍即為上古神獸，建議改用融資成本計算。"
     )
 
 # 手機數字鍵盤補丁
@@ -92,13 +98,12 @@ if st.button("🚀 執行波浪數據分析"):
             name, price, ma60 = get_stock_data(sid)
             
             if price:
-                # 仙兔波浪理論數據
-                p104 = round(cost * 1.04, 2) # 突破點
-                t1 = round(cost * 1.2, 2)    # 關卡一
-                t2 = round(cost * 1.4, 2)    # 關卡二
-                t3 = round(cost * 1.7, 2)    # 關卡三 (神獸點)
+                p104 = round(cost * 1.04, 2)
+                t1 = round(cost * 1.2, 2)
+                t2 = round(cost * 1.4, 2)
+                t3 = round(cost * 1.7, 2)
+                is_god_beast = price >= t3
                 
-                # 戰術邏輯判斷 (基於圖卡內容)
                 if price < cost:
                     strategy = "📍 **現價低於成本！** 法人還在盤整/收貨階段，建議耐心守候。"
                     status, color = "🟢 盤整收貨", "#51cf66"
@@ -112,15 +117,22 @@ if st.button("🚀 執行波浪數據分析"):
                     strategy = "📍 **站上關卡一。** 朝關卡二 (1.4) 前進，盤整期會較久。"
                     status, color = "🔥 強勢波浪", "#ff6b6b"
                 else:
-                    strategy = "📍 **警報：接近最後高點 (1.7)！** 若算起來超過 1.7 倍即為上古神獸，請改用融資成本或注意獲利入袋。"
+                    strategy = "📍 **警戒：已達高標位階！** 建議改用【融資成本】重新計算波浪。"
                     status, color = "⚠️ 高檔警戒", "#e63946"
 
-                # 4. 輸出精美報告
+                god_beast_html = f"""
+                <div class="god-beast-alert">
+                    ✨ 偵測到「上古神獸」✨<br>
+                    漲幅已超過 1.7 倍！請改用【融資成本】重新計算。
+                </div>
+                """ if is_god_beast else ""
+
                 report_html = f"""
                 <div class="report-card">
                     <div class="report-header">
                         <div style="font-size: 1.8rem; font-weight: bold;">{name} ({sid})</div>
                     </div>
+                    {god_beast_html}
                     <div style="padding: 25px; text-align: center;">
                         <div style="font-size: 0.8rem; color: #888; letter-spacing: 2px;">當前市場位階</div>
                         <div style="font-size: 3.5rem; font-weight: bold; color: {color}; line-height: 1.2;">{price:.2f}</div>
@@ -135,21 +147,18 @@ if st.button("🚀 執行波浪數據分析"):
                         <tr style="background-color: #fff9db;"><td class="report-label" style="color: #e67e22;">突破點 (1.04)</td><td class="report-value" style="color: #e67e22;">{p104:.2f}</td></tr>
                         <tr><td class="report-label">關卡一 (1.2高點)</td><td class="report-value">{t1:.2f}</td></tr>
                         <tr><td class="report-label">關卡二 (1.4高點)</td><td class="report-value">{t2:.2f}</td></tr>
-                        <tr><td class="report-label">關卡三 (1.7高點)</td><td class="report-value">{t3:.2f}</td></tr>
+                        <tr {"style='background-color:#fff9c4;'" if is_god_beast else ""}>
+                            <td class="report-label">關卡三 (1.7神獸點)<br><small style="color:#888; font-weight:normal;">建議改用融資成本</small></td>
+                            <td class="report-value">{t3:.2f}</td>
+                        </tr>
                     </table>
                 </div>
                 """
                 st.markdown(report_html, unsafe_allow_html=True)
             else:
                 st.error("❌ 無法抓取數據。請檢查網路或代號。")
-    except: st.error("⚠️ 請輸入正確的數字格式。")
+    except Exception as e: st.error(f"⚠️ 請輸入正確的數字格式。")
 
 st.write("---")
-st.markdown("""
-**🐰 仙兔選股四原則：**
-1. 優先選 **強勢股**。
-2. 觀察 **法人持續加碼**。
-3. 確認 **多頭線型**。
-4. 現價比成本 **高一點或差不多** 為佳。
-""")
-st.caption("數據來源：yfinance & twstock | 本系統僅供參考，不代表投資建議。")
+st.markdown("**🐰 仙兔選股四原則：**\n1. 優先選強勢股 | 2. 觀察法人持續加碼 | 3. 確認多頭線型 | 4. 現價比成本高一點或差不多為佳。")
+st.caption("數據來源：yfinance & twstock | 實戰版 v3.6")
