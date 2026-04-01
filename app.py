@@ -8,35 +8,36 @@ import streamlit.components.v1 as components
 # 1. 基礎設定
 st.set_page_config(page_title="仙兔 AI 分析儀", page_icon="🐰", layout="centered")
 
-# CSS：將輸入框文字改為紅色，並優化邊框完整度
+# CSS：徹底解決文字顯示不完整（切頭切尾）的問題
 st.markdown("""
     <style>
     .stApp { background-color: #0e1117; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
     
-    /* 確保輸入框容器有足夠空間，防止邊框被切掉 */
+    /* 核心：優化輸入框容器，確保外框與內部文字都有足夠空間 */
     .stTextInput div[data-baseweb="input"] {
         background-color: #1a1c23 !important;
         border-radius: 15px !important;
         border: 2px solid #555 !important;
-        padding: 10px !important; /* 增加內距，確保外框完整 */
+        padding: 12px 5px !important; /* 增加上下內距，防止切到文字 */
+        min-height: 70px !important; /* 強制容器高度 */
     }
     
-    /* 輸入文字改為紅色 */
+    /* 輸入文字：亮紅色、置中、調整行高 */
     .stTextInput input {
         background-color: transparent !important;
-        color: #ff4b4b !important; /* 修改為紅色 */
-        font-size: 26px !important;
+        color: #ff4b4b !important; 
+        font-size: 28px !important; /* 稍微放大更清晰 */
         text-align: center !important;
-        height: 50px !important;
-        border: none !important;
+        line-height: 1.5 !important; /* 增加行高確保文字不被切掉 */
         font-weight: bold !important;
+        border: none !important;
     }
     
-    /* 點擊時的發光效果 */
+    /* 點擊發光效果 */
     .stTextInput div[data-baseweb="input"]:focus-within {
         border-color: #ff4b4b !important;
-        box-shadow: 0 0 12px rgba(255, 75, 75, 0.5) !important;
+        box-shadow: 0 0 15px rgba(255, 75, 75, 0.6) !important;
     }
 
     .stButton>button { 
@@ -50,8 +51,8 @@ st.markdown("""
     label { 
         color: #eee !important; 
         font-weight: bold !important; 
-        font-size: 16px !important; 
-        margin-bottom: 12px !important; 
+        font-size: 17px !important; 
+        margin-bottom: 15px !important; 
         display: block; 
         text-align: center; 
     }
@@ -171,4 +172,4 @@ if st.button("🚀 執行 AI 數據分析"):
             else:
                 st.error("❌ 抓取數據失敗。")
     except Exception as e:
-        st.error(f"⚠️ 請輸入正確數據。")
+        st.error(f"⚠️ 請檢查輸入內容。")
