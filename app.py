@@ -83,7 +83,7 @@ def get_data(sid):
 if st.button("🚀 執行 AI 數據分析"):
     try:
         cost = float(cost_str)
-        with st.spinner('金兔正在偵測關卡突破...'):
+        with st.spinner('金兔正在優化視覺細節...'):
             name, df, price = get_data(sid)
 
             if price and not pd.isna(price):
@@ -110,7 +110,7 @@ if st.button("🚀 執行 AI 數據分析"):
                 is_bull = price > ma20 > ma60 if ma60 > 0 else False
                 is_god = cost >= (price * 1.5) 
                 
-                # --- AI 戰術建議核心邏輯 ---
+                # AI 戰術建議核心邏輯
                 if price < cost:
                     strategy = f"📍 低推上收貨中。現價離法人成本還有 {round(cost-price, 2)} 元，站穩成本線即轉強。"
                     color = "#51cf66"
@@ -146,7 +146,7 @@ if st.button("🚀 執行 AI 數據分析"):
                     
                     <div style="background: #fff5f5; border-left: 6px solid #ff4b4b; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                         <div style="font-weight: bold; color: #ff4b4b; font-size: 17px; margin-bottom: 5px;">🐰 AI 戰術建議：</div>
-                        <div style="font-size: 18px; font-weight: bold; color: #333;">{strategy}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: #333; line-height: 1.4;">{strategy}</div>
                     </div>
                     
                     <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 20px;">
@@ -157,29 +157,31 @@ if st.button("🚀 執行 AI 數據分析"):
                         <tr style="border-bottom: 1px solid #eee; color: #cc0000;"><td style="padding: 12px 5px;">關卡三 (1.7神獸)</td><td style="text-align: right; font-weight: bold; color: #cc0000;">{t3:.2f}</td></tr>
                     </table>
 
-                    <div style="background: #fff5f7; padding: 20px; border-radius: 20px; border: 2px solid #ffc9c9;">
-                        <div style="text-align: center; color: #c92a2a; font-weight: bold; margin-bottom: 15px; font-size: 19px;">🐰 兔子理財小學堂：買股心法</div>
-                        <div style="background: #fff9c4; padding: 15px; border-radius: 12px; margin-bottom: 18px; text-align: center; border: 1px solid #fbc02d;">
-                            <div style="color: #8d6e63; font-weight: bold; font-size: 17px;">買股心法：買比外資成本高的股！</div>
+                    <div style="background: #fff9c4; padding: 20px; border-radius: 20px; border: 2px solid #fbc02d; margin-top: 10px;">
+                        <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 15px; font-size: 19px;">🐰 兔子理財小學堂：買股心法</div>
+                        
+                        <div style="background: #fef9e7; padding: 15px; border-radius: 12px; margin-bottom: 18px; text-align: center; border: 1px dashed #fbc02d;">
+                            <div style="color: #c92a2a; font-weight: bold; font-size: 17px;">買股心法：買比外資成本高的股！</div>
                             <div style="color: #5d4037; font-size: 15px; margin-top: 5px; font-weight: bold;">低推上 = 盤整 / 收貨</div>
                         </div>
-                        <div style="text-align: center; color: #c92a2a; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則</div>
+
+                        <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 17px;">🎯 選股四原則</div>
                         <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                                <div style="background: #ff6b6b; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">1</div>
+                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
+                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">1</div>
                                 <div style="font-size: 15px; font-weight: bold; color: #444;">強勢股</div>
                             </div>
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                                <div style="background: #ff6b6b; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">2</div>
+                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
+                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">2</div>
                                 <div style="font-size: 15px; font-weight: bold; color: #444;">法人持續加碼</div>
                             </div>
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                                <div style="background: #ff6b6b; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">3</div>
+                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
+                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">3</div>
                                 <div style="font-size: 15px; font-weight: bold; color: #444;">多頭線型</div>
                             </div>
-                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                                <div style="background: #ff6b6b; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">4</div>
-                                <div style="font-size: 15px; font-weight: bold; color: #444;">現價比成本高高或差不多</div>
+                            <div style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #fff9c4;">
+                                <div style="background: #fbc02d; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 10px; flex-shrink: 0;">4</div>
+                                <div style="font-size: 15px; font-weight: bold; color: #444;">現價比成本高或差不多</div>
                             </div>
                         </div>
                     </div>
