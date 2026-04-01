@@ -1,24 +1,14 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
-import streamlit.components.v1 as components
+import twstock
 
-# 1. 網頁基礎設定
-st.set_page_config(page_title="仙兔波浪分析儀", page_icon="🐰", layout="centered")
+# 1. 基礎設定
+st.set_page_config(page_title="仙兔分析儀", page_icon="🐰")
 
-# 2. 基礎 CSS
-st.markdown("""
-    <style>
-    .main { background-color: #fffafb; }
-    .stButton>button { 
-        width: 100%; border-radius: 15px; height: 3.8em; 
-        background: linear-gradient(135deg, #ff6b6b, #f06595); 
-        color: white; font-weight: bold; font-size: 1.1em;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+# 2. 簡單標題
 st.title("🐰 仙兔波浪分析系統")
+st.write("---")
 
 # 3. 輸入區
 col1, col2 = st.columns(2)
@@ -51,72 +41,55 @@ if st.button("🚀 執行波浪數據分析"):
             name, price = get_google_data(sid)
             
             if price:
+                # 數據計算
                 p104 = round(cost * 1.04, 2)
                 t1, t2, t3 = round(cost * 1.2, 2), round(cost * 1.4, 2), round(cost * 1.7, 2)
                 
                 # 🎯 神獸邏輯：成本數字 大於 現價的 1.7 倍
                 is_god_beast = cost >= (price * 1.7)
                 
+                # 顯示股票頭部資訊
+                st.subheader(f"📊 {name} ({sid})")
+                
+                # 顯示現價卡片
+                st.metric("當前市場現價", f"{price:.2f}")
+
+                # 4. 上古神獸警告 (使用原生警告元件)
                 if is_god_beast:
-                    strategy = "📍 <b>上古神獸警報！</b> 成本與現價落差過大，建議改用【融資成本】計算。"
-                    status, color = "✨ 神獸位階", "#d4a017"
+                    st.warning("✨ **偵測到「上古神獸」**：輸入成本已超過現價 1.7 倍！建議改用【融資成本】重新計算。")
+
+                # 5. 兔兔戰術建議 (使用原生訊息元件)
+                if is_god_beast:
+                    strategy = "📍 **上古神獸警報！** 成本與現價落差過大，建議改用【融資成本】計算。"
                 elif price < cost:
-                    strategy = "📍 <b>現價低於成本！</b> 法人還在盤整/收貨階段，建議耐心守候。"
-                    status, color = "🟢 盤整收貨", "#51cf66"
+                    strategy = "📍 **現價低於成本！** 法人還在盤整/收貨階段，建議耐心守候。"
                 elif cost <= price < p104:
-                    strategy = "📍 <b>處於起跑區。</b> 等待突破 1.04 倍關鍵點。"
-                    status, color = "🟡 蓄勢待發", "#fcc419"
+                    strategy = "📍 **處於起跑區。** 等待突破 1.04 倍關鍵點。"
+                elif p104 <= price < t1:
+                    strategy = "📍 **已突破 1.04！** 目標關卡一 (1.2)。注意 3-5 日盤整。"
                 else:
-                    strategy = "📍 <b>波浪行進中。</b> 請依關卡價觀察支撐與壓力。"
-                    status, color = "#ff6b6b", "#ff6b6b"
+                    strategy = "📍 **波浪行進中。** 請依關卡價觀察支撐與壓力。"
+                
+                st.info(strategy)
 
-                god_beast_html = f'<div style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #5d4037; padding: 15px; margin-bottom: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 14px;">✨ 偵測到「上古神獸」✨<br>輸入成本已超過現價 1.7 倍！建議改用【融資成本】。</div>' if is_god_beast else ""
+                # 6. 關卡數據表格 (使用標準 Dataframe)
+                st.write("### 📏 關卡分析表")
+                res_data = [
+                    {"項目": "法人原始成本", "數值": f"{cost:.2f}"},
+                    {"項目": "突破點 (1.04)", "數值": f"{p104:.2f}"},
+                    {"項目": "關卡一 (1.2)", "數值": f"{t1:.2f}"},
+                    {"項目": "關卡二 (1.4)", "數值": f"{t2:.2f}"},
+                    {"項目": "關卡三 (1.7)", "數值": f"{t3:.2f}"}
+                ]
+                st.table(res_data)
+                
+                if is_god_beast:
+                    st.caption("💡 備註：目前位階已達神獸級，上述關卡僅供參考，請優先參考融資成本。")
 
-                # 🚀 組合最終 HTML (放在一個變數內一次渲染)
-                card_html = f'''
-                <div style="font-family: -apple-system, sans-serif; padding: 10px; background-color: #fffafb;">
-                    <div style="background: white; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #ffe3e3;">
-                        <div style="background: linear-gradient(135deg, #ff8787, #ff6b6b); color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold;">
-                            {name} ({sid})
-                        </div>
-                        <div style="padding: 20px;">
-                            {god_beast_html}
-                            <div style="text-align: center; margin-bottom: 20px;">
-                                <div style="font-size: 12px; color: #888; letter-spacing: 2px;">當前市場現價</div>
-                                <div style="font-size: 48px; font-weight: bold; color: {color};">{price:.2f}</div>
-                                <div style="display: inline-block; padding: 4px 15px; border-radius: 20px; background: {color}; color: white; font-size: 14px; font-weight: bold; margin-top: 5px;">{status}</div>
-                            </div>
-                            <div style="background: #fff5f5; border-left: 4px solid #ff6b6b; padding: 12px; border-radius: 6px; font-size: 14px; color: #444; margin-bottom: 20px;">
-                                {strategy}
-                            </div>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-                                <tr {"style='background-color:#fff9c4;'" if is_god_beast else ""}>
-                                    <td style="padding: 10px; color: #666;">法人原始成本</td>
-                                    <td style="padding: 10px; text-align: right; font-weight: bold;">{cost:.2f}</td>
-                                </tr>
-                                <tr style="background-color: #fff9db;">
-                                    <td style="padding: 10px; color: #e67e22;">突破點 (1.04)</td>
-                                    <td style="padding: 10px; text-align: right; font-weight: bold; color: #e67e22;">{p104:.2f}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px; color: #666;">關卡一 (1.2高點)</td>
-                                    <td style="padding: 10px; text-align: right; font-weight: bold;">{t1:.2f}</td>
-                                </tr>
-                                <tr style="background-color: #fafafa;">
-                                    <td style="padding: 10px; color: #666;">關卡二 (1.4高點)</td>
-                                    <td style="padding: 10px; text-align: right; font-weight: bold;">{t2:.2f}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px; color: #666;">關卡三 (1.7神獸點)</td>
-                                    <td style="padding: 10px; text-align: right; font-weight: bold;">{t3:.2f}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                '''
-                components.html(card_html, height=600)
             else:
-                st.error("❌ 無法獲取數據")
+                st.error("❌ 無法獲取數據，請確認代號正確。")
     except Exception as e:
         st.error(f"⚠️ 錯誤: {e}")
+
+st.write("---")
+st.caption("實戰穩定版 v5.0")
