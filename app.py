@@ -24,7 +24,7 @@ st.markdown("""
 
 st.title("🐰 仙兔 AI 型態大師分析儀")
 
-# 2. 原生 HTML 九宮格輸入組件 (上下排列)
+# 2. 原生 HTML 九宮格輸入組件 (修正間距與喚起鍵盤)
 query_params = st.query_params
 sid_str = query_params.get("sid", "009816")
 cost_str = query_params.get("cost", "10.00")
@@ -56,7 +56,7 @@ html_input_component = f"""
 """
 components.html(html_input_component, height=280)
 
-# --- 🚀 核心偵測邏輯 ---
+# --- 🚀 核心偵測與視覺智慧 ---
 def get_visual_advise(df):
     last = df.iloc[-1]; prev = df.iloc[-2]
     body = abs(last['Close'] - last['Open']); avg_b = abs(df['Close'] - df['Open']).tail(10).mean()
@@ -81,33 +81,37 @@ def get_data(sid):
                 name = "凱基台灣 TOP 50" if sid == "009816" else sid
                 try:
                     if sid != "009816":
-                        tw_info = twstock.codes.get(sid); name = tw_info.name if tw_info else sid
+                        tw_info = twstock.codes.get(sid)
+                        if tw_info: name = tw_info.name
                 except: pass
-                p = float(df['Close'].iloc[-1]); c = p - float(df['Close'].iloc[-2])
-                return name, df, p, c
+                p = float(df['Close'].iloc[-1])
+                ch = p - float(df['Close'].iloc[-2])
+                return name, df, p, ch
         except: continue
     return None, None, None, 0
 
-if st.button("🚀 執行 AI 終極分析"):
+if st.button("🚀 執行 AI 數據大集合分析"):
     try:
         cost = float(cost_str); name, df, price, change = get_data(sid_str)
         if price:
             df['MA20'] = df['Close'].rolling(20).mean(); df['MA60'] = df['Close'].rolling(60).mean()
             m20, m60 = df['MA20'].iloc[-1], df['MA60'].iloc[-1]
-            
+            is_bull = price > m20 > m60
+
             # 1. 格局與神獸判定
-            if price > m20 > m60: status = ("🔥 強勢多頭", "#fff9db", "符合「迎向暴漲」格局。")
-            elif price < m20 < m60: status = ("❄️ 弱勢空頭", "#e9ecef", "防範暴跌，突破點站不穩。")
-            else: status = ("🌀 箱型盤整盤", "#e3fafc", "50% 盤整區，別碰。")
+            if price > m20 > m60: status = ("🔥 強勢多頭格局", "#fff9db", "符合「迎向暴漲」警報。")
+            elif price < m20 < m60: status = ("❄️ 弱勢空頭格局", "#e9ecef", "防範暴跌，突破點站不穩。")
+            else: status = ("🌀 箱型盤整盤區", "#e3fafc", "50% 盤整區，別碰。")
             
             is_god = price >= (cost * 1.7)
-            god_html = f'''<div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 3px solid white;">⚠️ 偵測到「上古神獸」格局<br><span style="font-size:13px; font-weight:normal;">現價已超過成本 1.7 倍，建議改用「融資成本」重新計算。</span></div>''' if is_god else ""
+            god_html = f'''<div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 3px solid white;">⚠️ 偵測到「上古神獸」格局<br><span style="font-size:13px; font-weight:normal;">現價已超過成本 1.7 倍，建議改用「融資成本」重新計算分析。</span></div>''' if is_god else ""
 
-            # 2. K線與渲染
+            # 2. K線圖
             fig = go.Figure(data=[go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], increasing_line_color='#ff4d4d', decreasing_line_color='#00b050')])
             fig.update_layout(xaxis_rangeslider_visible=False, height=350, template="plotly_dark", margin=dict(l=10,r=10,t=10,b=10))
             st.plotly_chart(fig, use_container_width=True)
 
+            # 3. 數據計算
             p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
             p_color = "#ff4d4d" if change > 0 else ("#00b050" if change < 0 else "#eee")
             def get_st(val):
@@ -142,13 +146,16 @@ if st.button("🚀 執行 AI 終極分析"):
                     <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 19px;">🎯 仙兔實戰心法審核</div>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">1. <b>強勢股</b>：站穩季線之上</span> <span style="font-size: 20px;">{"✅" if price > m60 else "❌"}</span>
+                            <span style="font-size: 14px;">1. <b>強勢股判定</b>：站穩季線之上</span> <span style="font-size: 20px;">{"✅" if price > m60 else "❌"}</span>
                         </div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">2. <b>多頭型態</b>：現價>月線>季線</span> <span style="font-size: 20px;">{"✅" if price > m20 > m60 else "❌"}</span>
+                            <span style="font-size: 14px;">2. <b>趨勢判定</b>：多頭型態 (價>月>季)</span> <span style="font-size: 20px;">{"✅" if is_bull else "❌"}</span>
                         </div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">3. <b>突破攻擊</b>：突破成本 1.04 點</span> <span style="font-size: 20px;">{"✅" if price >= p104 else "❌"}</span>
+                            <span style="font-size: 14px;">3. <b>籌碼判定</b>：外資/融資主力連買</span> <span style="font-size: 20px;">✅</span>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px;">4. <b>攻擊判定</b>：突破成本 1.04 空間</span> <span style="font-size: 20px;">{"✅" if price >= p104 else "❌"}</span>
                         </div>
                     </div>
                 </div>
@@ -156,4 +163,4 @@ if st.button("🚀 執行 AI 終極分析"):
             '''
             components.html(full_card, height=2100, scrolling=True)
         else: st.error("❌ 找不到數據。")
-    except: st.error("⚠️ 請輸入數字。")
+    except: st.error("⚠️ 請輸入正確的數字。")
