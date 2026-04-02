@@ -24,7 +24,7 @@ st.markdown("""
 
 st.title("🐰 仙兔 AI 型態大師分析儀")
 
-# 2. 九宮格輸入組件
+# 2. 九宮格輸入
 query_params = st.query_params
 sid_str = query_params.get("sid", "009816")
 cost_str = query_params.get("cost", "10.00")
@@ -56,14 +56,14 @@ html_input_component = f"""
 """
 components.html(html_input_component, height=280)
 
-# --- 🚀 核心數據抓取與備援 ---
+# --- 🚀 終極數據抓取與強效校正 ---
 @st.cache_data(ttl=300)
-def fetch_all_data(sid):
+def fetch_final_data(sid):
     sid = sid.strip()
     name = "凱基台灣 TOP 50" if sid == "009816" else sid
     try:
-        info = twstock.codes.get(sid)
-        if info: name = info.name
+        tw_info = twstock.codes.get(sid)
+        if tw_info: name = tw_info.name
     except: pass
 
     for suffix in [".TW", ".TWO", ""]:
@@ -71,15 +71,18 @@ def fetch_all_data(sid):
             ticker = yf.Ticker(f"{sid}{suffix}")
             df = ticker.history(period="1y")
             if not df.empty:
-                p = float(df['Close'].iloc[-1])
-                ch = p - float(df['Close'].iloc[-2]) if len(df) > 1 else 0
-                return name, df, p, ch
+                # 🛡️ 核心修復：先填充空白值，再剔除最後可能存在的空列
+                df_clean = df.ffill().dropna(subset=['Close'])
+                if not df_clean.empty:
+                    p = float(df_clean['Close'].iloc[-1])
+                    ch = p - float(df_clean['Close'].iloc[-2]) if len(df_clean) > 1 else 0
+                    return name, df_clean, p, ch
         except: continue
     
-    # 備援抓取 (twstock)
+    # 備援 (twstock)
     try:
         r = twstock.realtime.get(sid)
-        if r and r['success']:
+        if r and r['success'] and r['realtime']['latest_trade_price']:
             p = float(r['realtime']['latest_trade_price'])
             df_dummy = pd.DataFrame({'Close': [p]*60}, index=pd.date_range(end=pd.Timestamp.now(), periods=60))
             return name, df_dummy, p, 0
@@ -88,52 +91,48 @@ def fetch_all_data(sid):
 
 if st.button("🚀 執行 AI 數據分析儀"):
     try:
-        cost = float(cost_str); name, df, cur_p, cur_ch = fetch_all_data(sid_str)
-        if cur_p is not None:
-            # 均線保底計算
+        cost = float(cost_str); name, df, p_val, ch_val = fetch_final_data(sid_str)
+        if p_val:
             data_count = len(df)
             df['MA20'] = df['Close'].rolling(window=20, min_periods=1).mean()
             df['MA60'] = df['Close'].rolling(window=60, min_periods=1).mean()
-            ma20 = float(df['MA20'].iloc[-1]); ma60 = float(df['MA60'].iloc[-1])
+            m20, m60 = float(df['MA20'].iloc[-1]), float(df['MA60'].iloc[-1])
 
-            # 1. 數據不足 60 天備註
-            ma60_note = f'<div style="font-size:10px; color:#e67e22; margin-top:4px;">*掛牌僅{data_count}天,以至今平均計算</div>' if data_count < 60 else ""
-
-            # 2. 格局與神獸
-            if cur_p > ma20 > ma60: status = ("🔥 強勢多頭", "#fff9db", "符合「迎向暴漲」格局。")
-            elif cur_p < ma20 < ma60: status = ("❄️ 弱勢空頭", "#e9ecef", "防範暴跌，突破點站不穩。")
+            # 格局
+            if p_val > m20 > m60: status = ("🔥 強勢多頭", "#fff9db", "符合「迎向暴漲」格局。")
+            elif p_val < m20 < m60: status = ("❄️ 弱勢空頭", "#e9ecef", "防範暴跌，突破點站不穩。")
             else: status = ("🌀 箱型盤整", "#e3fafc", "50% 盤整區，別碰。")
-            
-            is_god = cur_p >= (cost * 1.7)
-            god_h = f'''<div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 3px solid white;">⚠️ 偵測到「上古神獸」格局<br><span style="font-size:13px; font-weight:normal;">現價已過外資成本 1.7 倍，建議改用「融資成本」重新分析。</span></div>''' if is_god else ""
 
-            # 3. K線圖
+            # 神獸提醒
+            is_god = p_val >= (cost * 1.7)
+            god_html = f'''<div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 3px solid white;">⚠️ 偵測到「上古神獸」格局<br><span style="font-size:13px; font-weight:normal;">現價超過外資成本 1.7 倍，建議改用「融資成本」重新分析。</span></div>''' if is_god else ""
+
+            # K線圖
             fig = go.Figure(data=[go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], increasing_line_color='#ff4d4d', decreasing_line_color='#00b050')])
             fig.update_layout(xaxis_rangeslider_visible=False, height=350, template="plotly_dark", margin=dict(l=10,r=10,t=10,b=10))
             st.plotly_chart(fig, use_container_width=True)
 
-            # 4. 數據渲染
+            # 數據渲染
             p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
-            p_color = "#ff4d4d" if cur_ch > 0 else ("#00b050" if cur_ch < 0 else "#eee")
+            p_color = "#ff4d4d" if ch_val > 0 else ("#00b050" if ch_val < 0 else "#eee")
             sl_p = round(p104 * 0.94, 2)
-            sl_html = f'''<tr style="background: #fff0f0; border: 1.5px dashed #ff8787;"><td style="padding: 10px 5px; color: #cc0000; font-weight: bold;">🚩 風控回檔位 (-6%)<br><span style="font-size:10px; color:#999;">*突破點回檔之簡化風控</span></td><td style="text-align: right; font-weight: bold; color: #cc0000;">{sl_p:.2f}</td></tr>''' if cur_p >= p104 else ""
+            sl_html = f'''<tr style="background: #fff0f0; border: 1.5px dashed #ff8787;"><td style="padding: 10px 5px; color: #cc0000; font-weight: bold;">🚩 風控回檔位 (-6%)<br><span style="font-size:10px; color:#999;">*突破點回檔之簡化風控</span></td><td style="text-align: right; font-weight: bold; color: #cc0000;">{sl_p:.2f}</td></tr>''' if p_val >= p104 else ""
+            ma60_note = f'<div style="font-size:10px; color:#e67e22; margin-top:4px;">*掛牌僅{data_count}天,以至今平均計算</div>' if data_count < 60 else ""
 
             full_card = f'''
             <div style="font-family: sans-serif; background: white; padding: 15px; border-radius: 25px; color: #333;">
                 <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;">
                     <span style="font-size: 24px; font-weight: bold;">{name} ({sid_str})</span>
                 </div>
-                {god_h}
+                {god_html}
                 <div style="background: {status[1]}; padding: 15px; border-radius: 15px; border: 2px solid #ddd; margin-bottom: 15px; text-align: center;">
                     <b style="font-size: 20px; color: #333;">{status[0]}</b><br>
-                    <div style="font-size: 14px; color: #555; font-weight: bold;">{status[2]}</div>
+                    <div style="font-size: 14px; color: #555; font-weight: bold; margin-top: 5px;">{status[2]}</div>
                 </div>
-                
                 <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px; background: #fdfdfd; padding: 15px; border-radius: 15px; border: 1px solid #eee;">
-                    <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 32px; font-weight: bold; color: {p_color};">{cur_p:.2f}</div></div>
-                    <div><div style="font-size: 13px; color: #999;">季線 (60MA)</div><div style="font-size: 32px; font-weight: bold; color: #444;">{ma60:.2f}</div>{ma60_note}</div>
+                    <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 32px; font-weight: bold; color: {p_color};">{p_val:.2f}</div></div>
+                    <div><div style="font-size: 13px; color: #999;">季線 (60MA)</div><div style="font-size: 32px; font-weight: bold; color: #444;">{m60:.2f}</div>{ma60_note}</div>
                 </div>
-
                 <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 25px;">
                     <tr><td style="padding: 10px 5px;">外資成本 / 融資成本</td><td style="text-align: right; font-weight: bold;">{cost:.2f}</td></tr>
                     <tr style="background: #fff9db;"><td style="padding: 10px 5px; color: #e67e22; font-weight: bold;">突破點 (1.04)<br><span style="font-size:10px; color:#666; font-weight:normal;">*空頭格局通常在此位站不穩</span></td><td style="text-align: right; font-weight: bold;">{p104:.2f}</td></tr>
@@ -142,28 +141,25 @@ if st.button("🚀 執行 AI 數據分析儀"):
                     <tr style="background: #fafafa;"><td style="padding: 10px 5px;">目標二 (1.4)</td><td style="text-align: right;">{t2:.2f}</td></tr>
                     <tr style="border-bottom: 1px solid #eee;"><td style="padding: 10px 5px; font-weight: bold;">目標三 (1.7) <span style="font-size:11px; color:#cc0000; font-weight:normal;">*高風險不追價</span></td><td style="text-align: right;">{t3:.2f}</td></tr>
                 </table>
-
                 <div style="background: #fff9c4; padding: 20px; border-radius: 20px; border: 3px solid #fbc02d;">
                     <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 19px;">🎯 兔兔實戰心法審核</div>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">1. <b>強勢股判定</b>：站穩季線之上</span> <span style="font-size: 20px;">{"✅" if cur_p > ma60 else "❌"}</span>
+                            <span style="font-size: 14px;">1. <b>強勢股判定</b>：站穩季線之上</span> <span style="font-size: 20px;">{"✅" if p_val > m60 else "❌"}</span>
                         </div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">2. <b>趨勢判定</b>：多頭型態 (價>月>季)</span> <span style="font-size: 20px;">{"✅" if cur_p > ma20 > ma60 else "❌"}</span>
+                            <span style="font-size: 14px;">2. <b>趨勢判定</b>：多頭型態 (價>月>季)</span> <span style="font-size: 20px;">{"✅" if p_val > m20 > m60 else "❌"}</span>
                         </div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-size: 14px;">3. <b>籌碼判定</b>：外資/融資主力連買</span> <span style="font-size: 20px;">✅</span>
                         </div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 14px;">4. <b>攻擊判定</b>：突破成本 1.04 空間</span> <span style="font-size: 20px;">{"✅" if cur_p >= p104 else "❌"}</span>
+                            <span style="font-size: 14px;">4. <b>攻擊判定</b>：突破成本 1.04 空間</span> <span style="font-size: 20px;">{"✅" if p_val >= p104 else "❌"}</span>
                         </div>
                     </div>
                 </div>
             </div>
             '''
             components.html(full_card, height=2100, scrolling=True)
-        else:
-            st.error("❌ 找不到數據。")
-    except Exception as e:
-        st.error(f"⚠️ 系統錯誤: {e}")
+        else: st.error("❌ 找不到數據。")
+    except Exception as e: st.error(f"⚠️ 系統錯誤: {e}")
