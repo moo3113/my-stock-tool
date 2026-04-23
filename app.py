@@ -31,7 +31,7 @@ query_params = st.query_params
 sid_str = query_params.get("sid", "009816")
 cost_str = query_params.get("cost", "10.00")
 
-# 3. 改良版輸入組件 (代號支援英數，成本僅限數字)
+# 3. 改良版輸入組件
 html_input_component = f"""
     <div style="font-family: -apple-system, sans-serif; padding: 10px 5px;">
         <div style="margin-bottom: 25px;">
