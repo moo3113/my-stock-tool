@@ -31,7 +31,7 @@ query_params = st.query_params
 sid_str = query_params.get("sid", "009816")
 cost_str = query_params.get("cost", "10.00")
 
-# 3. HTML/JS 輸入組件 (移除格式提示文字)
+# 3. HTML/JS 輸入組件
 html_input_component = f"""
     <div style="font-family: -apple-system, sans-serif; padding: 10px 5px;">
         <div style="margin-bottom: 25px;">
@@ -61,28 +61,22 @@ html_input_component = f"""
 """
 components.html(html_input_component, height=280)
 
-# --- 🚀 核心偵測與數據引擎 ---
+# --- 🚀 核心數據引擎 ---
 @st.cache_data(ttl=60)
 def fetch_pro_data(sid):
     sid = sid.strip().upper()
     if not sid: return None, None, None, 0, False, False
     
-    # 建立多重嘗試清單，支援債券(B)、純數字與美股
     search_list = []
-    if sid.endswith('B'): # 債券 ETF 邏輯
-        search_list.extend([f"{sid}.TW", f"{sid}.TWO"])
-    elif sid.isdigit(): # 純數字台股邏輯
-        search_list.extend([f"{sid}.TW", f"{sid}.TWO"])
-    else: # 美股或其他
-        search_list.append(sid)
+    if sid.endswith('B'): search_list.extend([f"{sid}.TW", f"{sid}.TWO"])
+    elif sid.isdigit(): search_list.extend([f"{sid}.TW", f"{sid}.TWO"])
+    else: search_list.append(sid)
     
     name = sid
     try:
-        if sid in twstock.codes:
-            name = twstock.codes[sid].name
+        if sid in twstock.codes: name = twstock.codes[sid].name
     except: pass
 
-    # 時區校正
     tz = pytz.timezone('Asia/Taipei')
     now = datetime.now(tz)
     now_t = now.strftime("%H:%M")
@@ -102,7 +96,6 @@ def fetch_pro_data(sid):
     return None, None, None, 0, False, False
 
 if st.button("🚀 執行 AI 數據分析儀"):
-    # 從最新的 URL 參數抓取值
     final_sid = st.query_params.get("sid", sid_str)
     final_cost_str = st.query_params.get("cost", cost_str)
     
@@ -111,22 +104,26 @@ if st.button("🚀 執行 AI 數據分析儀"):
         name, df, p_val, ch_val, trial, trading = fetch_pro_data(final_sid)
         
         if p_val:
-            # 數據處理與 MA 計算
             data_count = len(df)
             df['MA20'] = df['Close'].rolling(window=20, min_periods=1).mean()
             df['MA60'] = df['Close'].rolling(window=60, min_periods=1).mean()
             m20, m60 = float(df['MA20'].iloc[-1]), float(df['MA60'].iloc[-1])
             bias_60 = ((p_val - m60) / m60) * 100 if m60 != 0 else 0
 
-            # 格局判定
             if p_val > m20 > m60: status = ("🔥 強勢多頭", "#fff9db", "符合「迎向暴漲」格局。")
             elif p_val < m20 < m60: status = ("❄️ 弱勢空頭", "#e9ecef", "防範暴跌，突破點站不穩。")
             else: status = ("🌀 箱型盤整", "#e3fafc", "50% 盤整區，別碰。")
 
-            # UI 組件生成
             trial_note = '<div style="font-size:10px; color:#9c27b0; margin-top:4px; font-weight:bold;">🕒 試搓時段/數據延遲中</div>' if trial else ""
             ma60_note = f'<div style="font-size:10px; color:#e67e22; margin-top:4px;">*掛牌僅{data_count}天,以至今平均計算</div>' if data_count < 60 else ""
-            god_h = f'''<div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 3px solid white;">⚠️ 「上古神獸」格局：現價已過成本 1.7 倍</div>''' if p_val >= (cost * 1.7) else ""
+            
+            # --- 上古神獸警報優化 ---
+            god_h = f'''
+            <div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; border: 3px solid white;">
+                <span style="font-size: 24px; font-weight: bold;">⚠️ 「上古神獸」格局</span><br>
+                <span style="font-size: 13px; opacity: 0.9;">現價已過成本 1.7 倍，建議改用融資成本參考</span>
+            </div>
+            ''' if p_val >= (cost * 1.7) else ""
 
             p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
             p_color = "#ff4d4d" if ch_val > 0 else ("#00b050" if ch_val < 0 else "#eee")
@@ -153,18 +150,21 @@ if st.button("🚀 執行 AI 數據分析儀"):
                 </table>
                 <div style="background: #fff9c4; padding: 20px; border-radius: 20px; border: 3px solid #fbc02d;">
                     <div style="text-align: center; color: #8d6e63; font-weight: bold; margin-bottom: 12px; font-size: 19px;">🎯 兔兔實戰心法審核</div>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px;">
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>1. 站穩季線之上</span> <span>{"✅" if p_val > m60 else "❌"}</span></div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>2. 多頭型態 (價>月>季)</span> <span>{"✅" if p_val > m20 > m60 else "❌"}</span></div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>3. 突破 1.04 攻擊位</span> <span>{"✅" if p_val >= p104 else "❌"}</span></div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>4. 乖離率監控 (<25%)</span> <span>{"✅" if bias_60 < 25 else "⚠️ 太高"}</span></div>
                     </div>
+                    <div style="background: rgba(255,255,255,0.5); padding: 12px; border-radius: 12px; font-size: 13px; color: #5d4037; line-height: 1.5;">
+                        <b>💡 什麼是乖離率？</b><br>
+                        代表「現價」離「季線」的距離。乖離率過高（如 >25%）表示短線漲太兇，像拉太緊的橡皮筋，隨時可能往季線靠攏（回檔），此時追價風險極大！
+                    </div>
                 </div>
             </div>
             '''
-            components.html(full_card, height=1050, scrolling=True)
+            components.html(full_card, height=1150, scrolling=True)
             
-            # K 線與 MA 圖表
             fig = go.Figure(data=[
                 go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="K線", increasing_line_color='#ff4d4d', decreasing_line_color='#00b050'),
                 go.Scatter(x=df.index, y=df['MA20'], line=dict(color='#ffeb3b', width=1.2), name="20MA"),
@@ -173,6 +173,6 @@ if st.button("🚀 執行 AI 數據分析儀"):
             fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=400, margin=dict(l=10, r=10, t=10, b=10))
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.warning("🔍 找不到資料，請確認代號（如 2330 或 00679B）是否輸入正確。")
+            st.warning("🔍 找不到資料，請確認代號（如 2330 或 00679B）是否正確。")
     except Exception as e:
         st.error(f"⚠️ 系統錯誤: {e}")
