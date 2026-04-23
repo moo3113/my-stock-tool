@@ -31,18 +31,18 @@ query_params = st.query_params
 sid_str = query_params.get("sid", "009816")
 cost_str = query_params.get("cost", "10.00")
 
-# 3. 改良版輸入組件
+# 3. HTML/JS 輸入組件 (移除格式提示文字)
 html_input_component = f"""
     <div style="font-family: -apple-system, sans-serif; padding: 10px 5px;">
         <div style="margin-bottom: 25px;">
-            <div style="color: #eee; text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 16px;">股票/ETF 代號 (英數)</div>
+            <div style="color: #eee; text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 16px;">股票/ETF 代號</div>
             <input type="text" id="sid_box" value="{sid_str}" 
                 style="width: 100%; height: 75px; background: #1a1c23; border: 2px solid #555; border-radius: 18px; color: #ff4b4b; font-size: 32px; text-align: center; font-weight: bold; outline: none; box-sizing: border-box;">
         </div>
         <div style="margin-bottom: 15px;">
-            <div style="color: #eee; text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 16px;">外資成本 / 融資成本 (僅數字)</div>
+            <div style="color: #eee; text-align: center; font-weight: bold; margin-bottom: 12px; font-size: 16px;">外資成本 / 融資成本</div>
             <input type="tel" id="cost_box" value="{cost_str}" inputmode="decimal" 
-                oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\\./g, '$1');"
+                oninput="this.value = this.value.replace(/[^0-9.]/g, '');"
                 style="width: 100%; height: 75px; background: #1a1c23; border: 2px solid #555; border-radius: 18px; color: #ff4b4b; font-size: 32px; text-align: center; font-weight: bold; outline: none; box-sizing: border-box;">
         </div>
     </div>
@@ -51,11 +51,12 @@ html_input_component = f"""
         const c = document.getElementById('cost_box');
         function update() {{
             const url = new URL(window.parent.location);
-            url.searchParams.set('sid', s.value.toUpperCase());
-            url.searchParams.set('cost', c.value);
+            url.searchParams.set('sid', s.value.toUpperCase().trim());
+            url.searchParams.set('cost', c.value.trim());
             window.parent.history.replaceState({{}}, '', url);
         }}
-        s.oninput = update; c.oninput = update; 
+        s.onchange = update; c.onchange = update;
+        s.onblur = update; c.onblur = update;
     </script>
 """
 components.html(html_input_component, height=280)
@@ -64,16 +65,23 @@ components.html(html_input_component, height=280)
 @st.cache_data(ttl=60)
 def fetch_pro_data(sid):
     sid = sid.strip().upper()
-    name = sid
-    # 自動判定台股市場標籤
-    search_list = [sid]
-    if sid.isdigit():
-        if sid in twstock.codes:
-            info = twstock.codes[sid]
-            name = info.name
-            suffix = ".TW" if "上市" in info.market else ".TWO"
-            search_list = [f"{sid}{suffix}", sid]
+    if not sid: return None, None, None, 0, False, False
     
+    # 建立多重嘗試清單，支援債券(B)、純數字與美股
+    search_list = []
+    if sid.endswith('B'): # 債券 ETF 邏輯
+        search_list.extend([f"{sid}.TW", f"{sid}.TWO"])
+    elif sid.isdigit(): # 純數字台股邏輯
+        search_list.extend([f"{sid}.TW", f"{sid}.TWO"])
+    else: # 美股或其他
+        search_list.append(sid)
+    
+    name = sid
+    try:
+        if sid in twstock.codes:
+            name = twstock.codes[sid].name
+    except: pass
+
     # 時區校正
     tz = pytz.timezone('Asia/Taipei')
     now = datetime.now(tz)
@@ -94,17 +102,20 @@ def fetch_pro_data(sid):
     return None, None, None, 0, False, False
 
 if st.button("🚀 執行 AI 數據分析儀"):
+    # 從最新的 URL 參數抓取值
+    final_sid = st.query_params.get("sid", sid_str)
+    final_cost_str = st.query_params.get("cost", cost_str)
+    
     try:
-        cost = float(cost_str) if cost_str else 0.0
-        name, df, p_val, ch_val, trial, trading = fetch_pro_data(sid_str)
+        cost = float(final_cost_str) if final_cost_str else 0.0
+        name, df, p_val, ch_val, trial, trading = fetch_pro_data(final_sid)
         
         if p_val:
+            # 數據處理與 MA 計算
             data_count = len(df)
             df['MA20'] = df['Close'].rolling(window=20, min_periods=1).mean()
             df['MA60'] = df['Close'].rolling(window=60, min_periods=1).mean()
             m20, m60 = float(df['MA20'].iloc[-1]), float(df['MA60'].iloc[-1])
-            
-            # 乖離率計算
             bias_60 = ((p_val - m60) / m60) * 100 if m60 != 0 else 0
 
             # 格局判定
@@ -112,29 +123,26 @@ if st.button("🚀 執行 AI 數據分析儀"):
             elif p_val < m20 < m60: status = ("❄️ 弱勢空頭", "#e9ecef", "防範暴跌，突破點站不穩。")
             else: status = ("🌀 箱型盤整", "#e3fafc", "50% 盤整區，別碰。")
 
-            # 警告與備註
-            delay_warn = f'''<div style="background: #e3f2fd; color: #1565c0; padding: 12px; border-radius: 12px; font-size: 11px; text-align: center; margin-bottom: 20px; border: 1px solid #bbdefb; font-weight: bold;">⚠️ 數據延遲 15-20 分，目前季線乖離：{bias_60:.1f}%</div>'''
+            # UI 組件生成
             trial_note = '<div style="font-size:10px; color:#9c27b0; margin-top:4px; font-weight:bold;">🕒 試搓時段/數據延遲中</div>' if trial else ""
             ma60_note = f'<div style="font-size:10px; color:#e67e22; margin-top:4px;">*掛牌僅{data_count}天,以至今平均計算</div>' if data_count < 60 else ""
             god_h = f'''<div style="background: #ff4b4b; color: white; padding: 15px; margin-bottom: 15px; border-radius: 15px; text-align: center; font-weight: bold; border: 3px solid white;">⚠️ 「上古神獸」格局：現價已過成本 1.7 倍</div>''' if p_val >= (cost * 1.7) else ""
 
-            # 目標計算
             p104, t1, t2, t3 = round(cost*1.04, 2), round(cost*1.2, 2), round(cost*1.4, 2), round(cost*1.7, 2)
             p_color = "#ff4d4d" if ch_val > 0 else ("#00b050" if ch_val < 0 else "#eee")
             sl_html = f'''<tr style="background: #fff0f0; border: 1.5px dashed #ff8787;"><td style="padding: 10px 5px; color: #cc0000; font-weight: bold;">🚩 風控回檔位 (-6%)</td><td style="text-align: right; font-weight: bold; color: #cc0000;">{round(p104*0.94,2):.2f}</td></tr>''' if p_val >= p104 else ""
 
             full_card = f'''
             <div style="font-family: sans-serif; background: white; padding: 15px; border-radius: 25px; color: #333;">
-                <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;"><span style="font-size: 24px; font-weight: bold;">{name} ({sid_str.upper()})</span></div>
+                <div style="background: linear-gradient(135deg, #c92a2a, #ff4b4b); color: white; padding: 18px; text-align: center; border-radius: 20px; margin-bottom: 15px;"><span style="font-size: 24px; font-weight: bold;">{name} ({final_sid})</span></div>
                 {god_h}
                 <div style="background: {status[1]}; padding: 15px; border-radius: 15px; border: 2px solid #ddd; margin-bottom: 15px; text-align: center;">
                     <b style="font-size: 20px;">{status[0]}</b><br><div style="font-size: 14px; color: #555; font-weight: bold;">{status[2]}</div>
                 </div>
                 <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 10px; background: #fdfdfd; padding: 15px; border-radius: 15px; border: 1px solid #eee;">
-                    <div><div style="font-size: 13px; color: #999;">現價</div><div style="font-size: 32px; font-weight: bold; color: {p_color};">{p_val:.2f}</div>{trial_note}</div>
+                    <div><div style="font-size: 13px; color: #999;">當前現價</div><div style="font-size: 32px; font-weight: bold; color: {p_color};">{p_val:.2f}</div>{trial_note}</div>
                     <div><div style="font-size: 13px; color: #999;">季線 (60MA)</div><div style="font-size: 32px; font-weight: bold; color: #444;">{m60:.2f}</div>{ma60_note}</div>
                 </div>
-                {delay_warn}
                 <table style="width: 100%; border-collapse: collapse; font-size: 16px; margin-bottom: 25px;">
                     <tr><td style="padding: 10px 5px;">成本參考點</td><td style="text-align: right; font-weight: bold;">{cost:.2f}</td></tr>
                     <tr style="background: #fff9db;"><td style="padding: 10px 5px; color: #e67e22; font-weight: bold;">突破點 (1.04)</td><td style="text-align: right; font-weight: bold; color: #e67e22;">{p104:.2f}</td></tr>
@@ -149,19 +157,22 @@ if st.button("🚀 執行 AI 數據分析儀"):
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>1. 站穩季線之上</span> <span>{"✅" if p_val > m60 else "❌"}</span></div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>2. 多頭型態 (價>月>季)</span> <span>{"✅" if p_val > m20 > m60 else "❌"}</span></div>
                         <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>3. 突破 1.04 攻擊位</span> <span>{"✅" if p_val >= p104 else "❌"}</span></div>
-                        <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>4. 季線乖離度控制</span> <span>{"✅" if bias_60 < 25 else "⚠️ 太高"}</span></div>
+                        <div style="background: white; padding: 12px; border-radius: 12px; border-left: 5px solid #fbc02d; display: flex; justify-content: space-between;"><span>4. 乖離率監控 (<25%)</span> <span>{"✅" if bias_60 < 25 else "⚠️ 太高"}</span></div>
                     </div>
                 </div>
             </div>
             '''
             components.html(full_card, height=1050, scrolling=True)
             
-            # 強化版 K 線圖
+            # K 線與 MA 圖表
             fig = go.Figure(data=[
                 go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="K線", increasing_line_color='#ff4d4d', decreasing_line_color='#00b050'),
                 go.Scatter(x=df.index, y=df['MA20'], line=dict(color='#ffeb3b', width=1.2), name="20MA"),
                 go.Scatter(x=df.index, y=df['MA60'], line=dict(color='#00e5ff', width=1.5), name="60MA")
             ])
-            fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=400, margin=dict(l=10,r=10,t=10,b=10))
+            fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=400, margin=dict(l=10, r=10, t=10, b=10))
             st.plotly_chart(fig, use_container_width=True)
-    except Exception as e: st.error(f"⚠️ 執行錯誤: {e}")
+        else:
+            st.warning("🔍 找不到資料，請確認代號（如 2330 或 00679B）是否輸入正確。")
+    except Exception as e:
+        st.error(f"⚠️ 系統錯誤: {e}")
